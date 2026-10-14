@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FBF6F0">
+<title>Koluska — щоденник перших днів вашого малюка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;1,400;1,500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<!-- Supabase (хмара) і JSZip (експорт). Версії зафіксовані. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ===== Koluska brand tokens (Брендбук v1.0) ===== */
+:root{
+  --bg:#FBF6F0;          /* milk */
+  --raised:#FFFDF9;      /* milk-raised: картки */
+  --text:#3B2B2F;        /* ink */
+  --muted:#76605F;       /* ink muted */
+  --line:#EADFD4;        /* line */
+  --rose:#A64C38;        /* головна дія, посилання */
+  --on-rose:#FFFFFF;
+  --rose-text:#A64C38;
+  --bloom:#E08A72;       /* знак, декор — не текст */
+  --honey:#E2AE4E;       /* крапка-малюк, віхи — не текст */
+  --sage:#4F6B4C;        /* здоров'я, спокій */
+  --sage-text:#4F6B4C;
+  --rose-soft:#F8E3DA; --honey-soft:#FBEFD3; --sage-soft:#E4ECDD;
+  --overlay:rgba(59,43,47,.38);
+  --shadow:0 1px 2px rgba(59,43,47,.04),0 8px 24px rgba(59,43,47,.07);
+  --serif:"Lora",Georgia,"Times New Roman",serif;
+  --sans:"Nunito",ui-rounded,"Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1F1A1C; --raised:#2A2326; --text:#F5ECE6; --muted:#BBA9AC; --line:#3D3337;
+    --rose:#EE9A84; --on-rose:#1F1A1C; --rose-text:#EE9A84; --bloom:#E08A72; --honey:#F0C673;
+    --sage:#A9C3A2; --sage-text:#A9C3A2;
+    --rose-soft:#4A2A23; --honey-soft:#3D3020; --sage-soft:#263222;
+    --overlay:rgba(0,0,0,.55); --shadow:0 1px 2px rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1F1A1C; --raised:#2A2326; --text:#F5ECE6; --muted:#BBA9AC; --line:#3D3337;
+  --rose:#EE9A84; --on-rose:#1F1A1C; --rose-text:#EE9A84; --bloom:#E08A72; --honey:#F0C673;
+  --sage:#A9C3A2; --sage-text:#A9C3A2;
+  --rose-soft:#4A2A23; --honey-soft:#3D3020; --sage-soft:#263222;
+  --overlay:rgba(0,0,0,.55); --shadow:0 1px 2px rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:24px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--rose);outline-offset:2px;border-radius:12px}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+img{max-width:100%}
+
+/* ----- Logo ----- */
+.mark{display:block;flex:none}
+.mark .cradle{fill:var(--bloom)}
+.mark .baby{fill:var(--honey)}
+.wordmark{font-family:var(--sans);font-weight:800;font-size:25px;letter-spacing:-.02em;color:var(--text);white-space:nowrap;line-height:1}
+
+/* ----- Auth ----- */
+.auth{min-height:100%;display:grid;place-items:center;padding:24px;position:relative;overflow:hidden}
+.auth .deco{position:absolute;inset:0;pointer-events:none}
+.auth-card{position:relative;width:100%;max-width:420px;background:var(--raised);border-radius:28px;padding:36px 28px 28px;box-shadow:var(--shadow)}
+.auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px}
+.auth h1{font-family:var(--serif);font-weight:600;font-size:28px;line-height:36px;text-align:center;margin:0 0 6px}
+.auth p.sub{color:var(--muted);text-align:center;margin:0 0 22px}
+.tabs{display:flex;background:var(--bg);border-radius:999px;padding:4px;margin-bottom:18px}
+.tabs button{flex:1;border:0;background:none;min-height:40px;border-radius:999px;font-weight:700;color:var(--muted)}
+.tabs button.on{background:var(--raised);color:var(--text);box-shadow:var(--shadow)}
+.auth .note{font-size:13px;line-height:18px;color:var(--muted);margin:16px 0 0;text-align:center}
+.err{color:var(--rose-text);font-size:14px;min-height:20px;margin:2px 0 8px;font-weight:600}
+
+/* ----- Layout ----- */
+.app{display:flex;height:100%}
+.sb{width:268px;flex:none;background:var(--raised);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px;transition:width .2s ease;overflow:hidden}
+.sb-head{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 18px;gap:8px}
+.logo{display:flex;align-items:center;gap:10px;min-width:0;border:0;background:none;padding:0}
+.icon-btn{width:44px;height:44px;border-radius:999px;border:1px solid var(--line);background:var(--raised);display:grid;place-items:center;color:var(--muted);flex:none}
+.icon-btn:hover{color:var(--text);background:var(--bg)}
+.child-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:24px;background:var(--rose-soft);border:0;width:100%;text-align:left;margin-bottom:16px;min-height:60px}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--rose-soft);color:var(--text);display:grid;place-items:center;font-weight:800;flex:none;overflow:hidden;border:2px solid var(--raised)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.child-card .meta{min-width:0}
+.child-card b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:800}
+.child-card small{color:var(--muted);white-space:nowrap;font-size:13px}
+nav.menu{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:14px;min-height:48px;padding:0 14px;border-radius:999px;border:0;background:none;color:var(--text);font-weight:600;text-align:left;white-space:nowrap;width:100%}
+.nav-item:hover{background:var(--bg)}
+.nav-item.on{background:var(--soft);font-weight:800}
+.nav-item .dot{width:8px;height:8px;border-radius:50%;margin-left:auto;flex:none}
+.sb-sep{height:1px;background:var(--line);margin:8px 6px}
+.sb-foot{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.lang{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:999px;min-height:44px;padding:0 14px}
+.lang select{border:0;background:none;flex:1;font-weight:700;outline:none}
+.user-row{display:flex;align-items:center;gap:10px;padding:2px 4px}
+.user-row .meta{min-width:0;flex:1}
+.user-row b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-row small{color:var(--muted);display:block;font-size:13px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app.collapsed .sb{width:80px}
+.app.collapsed .lbl,.app.collapsed .child-card .meta,.app.collapsed .user-row .meta,.app.collapsed .lang select,.app.collapsed .nav-item .dot{display:none}
+.app.collapsed .sb-head{flex-direction:column;gap:12px;padding-bottom:14px}
+.app.collapsed .child-card{justify-content:center;background:none;padding:4px}
+.app.collapsed .nav-item{justify-content:center;padding:0}
+.app.collapsed .lang{justify-content:center;border:0;padding:0}
+.app.collapsed .user-row{flex-direction:column}
+.app.collapsed .collapse-btn svg{transform:rotate(180deg)}
+
+.main{flex:1;min-width:0;overflow-y:auto;height:100%;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);display:flex;align-items:center;gap:12px;padding:20px 32px 12px}
+.topbar h1{font-family:var(--serif);font-weight:600;font-size:32px;line-height:40px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu-btn{display:none}
+.content{padding:4px 32px 112px;max-width:1100px;width:100%;flex:1}
+.section-head{background:var(--soft);border-radius:24px;padding:18px 22px;margin-bottom:20px;display:flex;gap:16px;align-items:center}
+.section-head p{margin:0;max-width:60ch}
+
+/* Main action — always at the bottom, under the thumb */
+.fab-wrap{position:fixed;right:32px;bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:20;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.timer{pointer-events:auto;display:flex;align-items:center;gap:12px;background:var(--raised);border-radius:999px;padding:8px 8px 8px 10px;box-shadow:0 8px 28px rgba(59,43,47,.16);min-width:340px}
+.timer .tb{flex:1;min-width:0;display:flex;flex-direction:column}
+.timer .tb small{color:var(--muted);font-weight:700;font-size:13px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timer .tb b{font-size:24px;line-height:30px;font-weight:800;font-variant-numeric:tabular-nums}
+.timer .since{color:var(--muted);font-weight:700;font-size:14px;white-space:nowrap}
+.timer .run{width:10px;height:10px;border-radius:50%;background:var(--rose);display:inline-block;margin-right:6px;animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.starts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px}
+.starts p{margin:0 4px 0 0;color:var(--muted);font-weight:600;width:100%}
+.hidden{display:none!important}
+.loading{min-height:100%;display:grid;place-items:center;text-align:center;color:var(--muted);font-weight:700}
+.loading .mark{margin:0 auto 12px;animation:breathe 2.4s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(.92);opacity:.7}}
+.info{background:var(--sage-soft);color:var(--text);border-radius:16px;padding:12px 14px;font-size:14px;line-height:20px;margin-bottom:14px;font-weight:600}
+.trash-row{display:flex;gap:12px;align-items:center;background:var(--raised);border-radius:24px;padding:12px 14px;box-shadow:var(--shadow);flex-wrap:wrap}
+.trash-row .b{flex:1;min-width:180px}
+.trash-row .b small{color:var(--muted);display:block;font-size:14px}
+.trash-list{display:grid;gap:10px}
+.trash-row .btn{min-height:44px;padding:0 16px}
+.fab{pointer-events:auto;box-shadow:0 8px 24px rgba(166,76,56,.28);padding:0 28px;min-height:56px;font-size:17px}
+
+/* ----- Components ----- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;border:1px solid var(--line);background:var(--raised);min-height:48px;padding:0 22px;font-weight:800;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn.primary{background:var(--rose);border-color:var(--rose);color:var(--on-rose)}
+.btn.primary:hover{filter:brightness(1.07);background:var(--rose)}
+.btn.soft{background:var(--rose-soft);border-color:transparent}
+.btn.ghost{border-color:transparent;background:none}
+.btn.danger{border-color:transparent;background:var(--rose-soft);color:var(--rose-text)}
+.btn.block{width:100%}
+.btn svg.i{width:20px;height:20px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:14px;font-weight:700;color:var(--muted)}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:var(--raised);border-radius:16px;min-height:48px;padding:11px 16px;outline:none;min-width:0}
+.field textarea{min-height:96px;resize:vertical;font-family:var(--serif);font-style:italic;font-size:17px;line-height:26px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--rose);box-shadow:0 0 0 3px var(--rose-soft)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{background:var(--raised);border-radius:24px;padding:22px;box-shadow:var(--shadow)}
+.panel h2{margin:0 0 14px;font-size:22px;line-height:30px;font-weight:800}
+.panel p.quiet{color:var(--muted);margin:0}
+.label{display:inline-block;font-size:12px;line-height:16px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--lc)}
+
+/* Hero */
+.hero{background:var(--raised);border-radius:28px;padding:26px 28px;display:flex;gap:22px;align-items:center;margin-bottom:20px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.hero .avatar{width:84px;height:84px;font-size:32px;border-width:3px}
+.hero .age{font-size:clamp(28px,4.6vw,44px);font-weight:800;line-height:1.1;letter-spacing:-.02em}
+.hero .who{color:var(--muted);font-weight:600;margin-top:6px}
+.hero .moon{position:absolute;right:24px;top:50%;transform:translateY(-50%);opacity:.9}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--raised);border-radius:24px;padding:16px 18px;box-shadow:var(--shadow)}
+.stat small{color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px;font-size:14px}
+.stat small i{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
+.stat b{font-size:24px;line-height:32px;font-weight:800}
+.two{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick button{display:flex;align-items:center;gap:10px;border:0;background:var(--soft);border-radius:999px;min-height:48px;padding:0 14px;font-weight:700;text-align:left}
+.quick button:hover{filter:brightness(.97)}
+
+/* Memory cards */
+.cards{align-items:start;display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:var(--raised);border:0;border-radius:24px;padding:18px 20px;box-shadow:var(--shadow);cursor:pointer;text-align:left;width:100%;color:var(--text)}
+.card:hover{box-shadow:0 0 0 2px var(--line),var(--shadow)}
+.card .ph{width:calc(100% + 40px);margin:-18px -20px 8px;aspect-ratio:4/3;object-fit:cover;border-radius:24px 24px 0 0}
+.card .meta{color:var(--muted);font-size:14px;line-height:20px;font-weight:600}
+.card .ttl{font-weight:800;font-size:17px;line-height:24px}
+.card .txt{font-family:var(--serif);font-style:italic;font-size:18px;line-height:27px;white-space:pre-wrap;overflow-wrap:anywhere}
+.card .word{font-family:var(--serif);font-style:italic;font-size:26px;line-height:34px}
+.card .hint{font-size:14px;line-height:20px;color:var(--sage-text);font-weight:600}
+.rows{display:flex;flex-direction:column}
+.row{display:flex;gap:12px;align-items:center;border:0;background:none;padding:10px 4px;border-radius:16px;text-align:left;width:100%;cursor:pointer}
+.row:hover{background:var(--bg)}
+.row .b{min-width:0;flex:1}
+.row .b b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .b small{color:var(--muted);font-size:14px}
+.sw{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--lc);flex:none}
+.sw svg.i{width:20px;height:20px}
+
+.empty{text-align:center;padding:44px 20px 36px;background:var(--raised);border-radius:24px;box-shadow:var(--shadow)}
+.empty h2{font-family:var(--serif);font-weight:600;font-size:24px;line-height:32px;margin:14px 0 6px}
+.empty p{color:var(--muted);margin:0 auto 18px;max-width:36ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.chip{border:0;background:var(--raised);box-shadow:var(--shadow);border-radius:999px;min-height:44px;padding:0 16px;font-weight:700}
+.chip:hover{background:var(--honey-soft)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:20px}
+.chart svg{width:100%;height:auto;display:block}
+.chart .cap{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-weight:700;color:var(--muted)}
+.chart .cap b{font-size:22px;color:var(--text)}
+.kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.kid{display:flex;gap:12px;align-items:center;background:var(--raised);border-radius:24px;padding:14px 16px;box-shadow:var(--shadow)}
+.kid.on{box-shadow:0 0 0 2px var(--rose),var(--shadow)}
+.kid .meta{flex:1;min-width:0}
+.kid .meta small{color:var(--muted);display:block;font-size:14px}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:20px;color:var(--muted);margin:2px 0 12px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--rose);flex:none;margin:0}
+.link{border:0;background:none;padding:0;color:var(--rose-text);font-weight:700;text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-size:inherit}
+.field input.bad{border-color:var(--rose);box-shadow:0 0 0 3px var(--rose-soft)}
+.settings{display:grid;gap:16px;max-width:660px}
+.settings .panel h2{font-size:18px;line-height:24px;margin:0 0 4px}
+.set-link{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;border:0;border-bottom:1px solid var(--line);background:none;padding:14px 0;text-align:left;min-height:56px}
+.set-link:last-child{border-bottom:0}
+.set-link small{color:var(--muted);display:block;font-size:14px;font-weight:400}
+.set-link .chev{color:var(--muted)}
+.set-link:hover b{color:var(--rose-text)}
+.legal{font-size:16px;line-height:26px;white-space:pre-wrap}
+.contacts{display:grid;gap:8px}
+.contacts a{display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:999px;min-height:52px;padding:0 18px;color:var(--text);text-decoration:none;font-weight:700}
+.contacts a small{color:var(--muted);font-weight:600;margin-left:auto}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.set-row:last-child{border-bottom:0}
+.set-row small{color:var(--muted);display:block;font-size:14px}
+.seg{display:flex;background:var(--bg);border-radius:999px;padding:4px}
+.seg button{border:0;background:none;min-height:40px;padding:0 14px;border-radius:999px;font-weight:700;color:var(--muted)}
+.seg button.on{background:var(--raised);color:var(--text);box-shadow:var(--shadow)}
+
+/* Modal */
+.modal-wrap{position:fixed;inset:0;z-index:50;background:var(--overlay);display:grid;place-items:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.modal{background:var(--raised);border-radius:28px;width:100%;max-width:520px;max-height:100%;overflow-y:auto;padding:26px 24px 22px;box-shadow:var(--shadow);animation:pop .18s ease-out}
+@keyframes pop{from{transform:translateY(10px);opacity:0}}
+.modal h3{margin:0 0 18px;font-size:22px;line-height:30px;font-weight:800;display:flex;align-items:center;gap:12px}
+.actions{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.actions .sp{flex:1}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pick button{display:flex;align-items:center;gap:12px;border:0;background:var(--soft);border-radius:24px;min-height:64px;padding:0 16px;font-weight:800;text-align:left}
+.photo-box{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.photo-box img{width:88px;height:88px;object-fit:cover;border-radius:24px}
+.photo-box label.btn{cursor:pointer;color:var(--text);font-size:15px}
+.modal-wrap.top{z-index:55}
+.toast{width:max-content;position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:999px;font-weight:700;z-index:60;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center}
+.backdrop{display:none}
+
+@media (max-width:860px){
+  .sb{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-100%);transition:transform .22s ease;width:284px!important;padding-top:calc(18px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));box-shadow:var(--shadow)}
+  .app.collapsed .lbl,.app.collapsed .lang select{display:initial}
+  .app.collapsed .child-card .meta,.app.collapsed .user-row .meta{display:block}
+  .app.collapsed .nav-item .dot{display:block}
+  .app.collapsed .sb-head,.app.collapsed .user-row{flex-direction:row}
+  .app.collapsed .nav-item{justify-content:flex-start;padding:0 14px}
+  .app.collapsed .child-card{justify-content:flex-start;background:var(--rose-soft);padding:10px 12px}
+  .app.collapsed .lang{justify-content:flex-start;border:1px solid var(--line);padding:0 14px}
+  .app.open .sb{transform:none}
+  .app.open .backdrop{display:block;position:fixed;inset:0;background:var(--overlay);z-index:30}
+  .collapse-btn{display:none!important}
+  .menu-btn{display:grid}
+  .topbar{padding:12px 16px 8px}
+  .topbar h1{font-size:26px;line-height:34px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .two{grid-template-columns:1fr}
+  .hero{padding:20px;gap:16px}
+  .hero .avatar{width:64px;height:64px;font-size:24px}
+  .hero .moon{display:none}
+  .fab-wrap{left:0;right:0;bottom:0;align-items:center;padding:24px 16px calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 50%,transparent)}
+  .fab{width:100%;max-width:420px}
+  .timer{width:100%;max-width:420px;min-width:0}
+  .timer > .sw{display:none}
+  .timer{padding-left:20px}
+  .timer .icon-btn{width:40px;height:40px}
+  .starts .btn{flex:1 1 auto;padding:0 16px}
+  .hero .age{font-size:26px}
+  .content{padding:4px 16px 120px}
+  .pick{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* =========================================================
+   Koluska — прототип за брендбуком v1.0.
+   Дані зберігаються в браузері (localStorage). Для продакшну
+   замініть Store + Auth на Supabase/Firebase — інтерфейс не зміниться.
+   ========================================================= */
+const APP = 'Koluska';
+const PREFIX = 'koluska:';
+
+/* ---------- Storage ---------- */
+const mem = {};
+const Store = {
+  get(k, def){ try{ const v = localStorage.getItem(PREFIX+k); return v!=null ? JSON.parse(v) : (k in mem ? mem[k] : def); }catch(e){ return k in mem ? mem[k] : def; } },
+  set(k, v){ mem[k] = v; try{ localStorage.setItem(PREFIX+k, JSON.stringify(v)); return true; }catch(e){ toast('Не вдалося зберегти: пам’ять заповнена. Приберіть кілька фото.'); return false; } },
+  del(k){ delete mem[k]; try{ localStorage.removeItem(PREFIX+k); }catch(e){} }
+};
+
+/* =========================================================
+   НАЛАШТУВАННЯ ХМАРИ
+   Вставте сюди Project URL і anon (publishable) key з Supabase:
+   Project Settings → API. Обидва ключі публічні — їх можна тримати в коді.
+   Поки поля порожні, сайт працює в демо-режимі (дані лише в браузері).
+   ========================================================= */
+const CONFIG = {
+  SUPABASE_URL: '',
+  SUPABASE_ANON_KEY: ''
+};
+const CLOUD = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && window.supabase);
+const sb = CLOUD ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
+const NET = 'Не вдалося зберегти. Перевірте інтернет — ми нічого не загубили.';
+const TRASH_DAYS = 30;
+
+async function sha(s){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function dataUrlToBlob(u){
+  const [head, b64] = u.split(','), mime = (head.match(/data:([^;]+)/)||[])[1] || 'image/jpeg';
+  const bin = atob(b64), arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type:mime });
+}
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : uid());
+
+/* Перевірка форми реєстрації — спільна для обох режимів */
+function validateSignUp(f){
+  const email = f.email.trim().toLowerCase(), phone = normPhone(f.phone);
+  if(!f.name.trim()) throw ['name','Як вас звати?'];
+  if(!/^\S+@\S+\.\S+$/.test(email)) throw ['email','Перевірте email.'];
+  if(!phone) throw ['phone','Перевірте номер телефону, напр. +380 67 123 45 67.'];
+  if(f.pass.length < 6) throw ['pass','Пароль — щонайменше 6 символів.'];
+  if(!f.terms) throw ['terms','Погодьтеся з умовами, щоб продовжити.'];
+  return { name:f.name.trim(), email, phone, pass:f.pass, news:!!f.news, termsAt:new Date().toISOString() };
+}
+
+/* ---------- Режим 1: демо (localStorage) ---------- */
+const Local = {
+  async signUp(v){
+    const users = Store.get('users', {});
+    if(users[v.email]) throw ['email','Цей email уже з нами. Увійдіть.'];
+    const salt = uid();
+    users[v.email] = { name:v.name, phone:v.phone, news:v.news, termsAt:v.termsAt, salt, hash: await sha(salt+v.pass) };
+    Store.set('users', users); Store.set('session', v.email);
+    return { needsConfirm:false };
+  },
+  async signIn(email, pass){
+    email = email.trim().toLowerCase();
+    const u = Store.get('users', {})[email];
+    if(!u || u.hash !== await sha(u.salt+pass)) throw 'Email або пароль не підходять.';
+    Store.set('session', email);
+  },
+  async signOut(){ Store.del('session'); },
+  async getUser(){
+    const e = Store.get('session', null), u = Store.get('users', {})[e];
+    return u ? { id:e, email:e, name:u.name, phone:u.phone||'', news:!!u.news } : null;
+  },
+  async resetPassword(){ throw 'У демо-режимі відновлення пароля недоступне.'; },
+  async updatePassword(){},
+  async updateProfile(p){ const users = Store.get('users',{}); Object.assign(users[user.id], p); Store.set('users', users); },
+  _db(){ const d = Store.get('data:'+user.id, null) || {}; return { children:d.children||[], entries:d.entries||{}, timers:d.timers||{} }; },
+  _put(d){ if(!Store.set('data:'+user.id, d)) throw 'Не вдалося зберегти: пам’ять браузера заповнена.'; },
+  async load(){
+    const d = this._db(), kids = d.children.filter(c=>!c.deleted_at), alive = new Set(kids.map(c=>c.id));
+    const entries = {}; Object.entries(d.entries).forEach(([b,l])=>entries[b] = l.filter(e=>!e.deleted_at && alive.has(e.childId)));
+    return { children:kids, entries, timers:d.timers };
+  },
+  async saveChild(c){ const d = this._db(); c = { ...c, id:c.id||newId() }; const i = d.children.findIndex(x=>x.id===c.id); i<0 ? d.children.push(c) : d.children[i] = { ...d.children[i], ...c }; this._put(d); return c; },
+  async deleteChild(id){ const d = this._db(); const c = d.children.find(x=>x.id===id); if(c) c.deleted_at = new Date().toISOString(); this._put(d); },
+  async saveEntry(b, e){ const d = this._db(); e = { ...e, id:e.id||newId() }; const l = d.entries[b] = d.entries[b]||[]; const i = l.findIndex(x=>x.id===e.id); i<0 ? l.push(e) : l[i] = e; this._put(d); return e; },
+  async deleteEntry(b, id){ const d = this._db(); const e = (d.entries[b]||[]).find(x=>x.id===id); if(e) e.deleted_at = new Date().toISOString(); this._put(d); },
+  async trash(){
+    const d = this._db(), since = Date.now() - TRASH_DAYS*864e5, fresh = x => x.deleted_at && Date.parse(x.deleted_at) > since;
+    const dead = new Set(d.children.filter(c=>c.deleted_at).map(c=>c.id));
+    return { children:d.children.filter(fresh), entries:Object.entries(d.entries).flatMap(([b,l])=>l.filter(e=>fresh(e) && !dead.has(e.childId)).map(e=>({b,e}))), names:Object.fromEntries(d.children.map(c=>[c.id,c.name])) };
+  },
+  async restore(kind, id){ const d = this._db(); const x = kind==='child' ? d.children.find(c=>c.id===id) : Object.values(d.entries).flat().find(e=>e.id===id); if(x) delete x.deleted_at; this._put(d); },
+  async purge(kind, id){
+    const d = this._db();
+    if(kind==='child'){ d.children = d.children.filter(c=>c.id!==id); Object.keys(d.entries).forEach(b=>d.entries[b]=d.entries[b].filter(e=>e.childId!==id)); delete d.timers[id]; }
+    else Object.keys(d.entries).forEach(b=>d.entries[b]=d.entries[b].filter(e=>e.id!==id));
+    this._put(d);
+  },
+  async setTimer(childId, T){ const d = this._db(); if(T) d.timers[childId] = T; else delete d.timers[childId]; this._put(d); },
+  async wipe(){ const d = this._db(), now = new Date().toISOString(); d.children.forEach(c=>{ if(!c.deleted_at) c.deleted_at = now; }); this._put(d); },
+  async uploadPhoto(dataUrl){ return dataUrl; },
+  photoUrl(ref){ return ref || ''; },
+  async photoBlob(ref){ return dataUrlToBlob(ref); }
+};
+
+/* ---------- Режим 2: хмара (Supabase) ---------- */
+const photoCache = {};
+const chk = r => { if(r && r.error){ console.error(r.error); throw NET; } return r; };
+function authErr(e){
+  const m = (e && e.message || '').toLowerCase();
+  if(m.includes('invalid login')) return 'Email або пароль не підходять.';
+  if(m.includes('already registered') || m.includes('already been registered')) return ['email','Цей email уже з нами. Увійдіть.'];
+  if(m.includes('not confirmed')) return 'Підтвердьте email — лист уже на вашій пошті.';
+  if(m.includes('rate') || m.includes('security purposes')) return 'Забагато спроб. Спробуйте за хвилину.';
+  if(m.includes('password')) return ['pass','Пароль — щонайменше 6 символів.'];
+  console.error(e); return 'Не вдалося. Перевірте інтернет і спробуйте ще раз.';
+}
+const rowToChild = r => ({ id:r.id, name:r.name, birth:r.birth, sex:r.sex||'', photo:r.photo||'', deleted_at:r.deleted_at });
+const rowToEntry = r => ({ ...(r.payload||{}), id:r.id, childId:r.child_id, date:r.date, photo:r.photo||'', deleted_at:r.deleted_at, _b:r.block });
+const Cloud = {
+  async signUp(v){
+    const { data:r, error } = await sb.auth.signUp({ email:v.email, password:v.pass, options:{
+      data:{ name:v.name, phone:v.phone, news:v.news, terms_at:v.termsAt }, emailRedirectTo: location.origin + location.pathname } });
+    if(error) throw authErr(error);
+    if(r.user && Array.isArray(r.user.identities) && r.user.identities.length===0) throw ['email','Цей email уже з нами. Увійдіть.'];
+    return { needsConfirm: !r.session };
+  },
+  async signIn(email, pass){ const { error } = await sb.auth.signInWithPassword({ email:email.trim().toLowerCase(), password:pass }); if(error) throw authErr(error); },
+  async signOut(){ await sb.auth.signOut(); },
+  async getUser(){
+    const { data:{ session } } = await sb.auth.getSession(); if(!session) return null;
+    const u = session.user, { data:p } = await sb.from('profiles').select('*').eq('id', u.id).maybeSingle();
+    return { id:u.id, email:u.email, name:p?.name || u.user_metadata?.name || '', phone:p?.phone || '', news:!!p?.news };
+  },
+  async resetPassword(email){ const { error } = await sb.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: location.origin + location.pathname }); if(error) throw authErr(error); },
+  async updatePassword(pw){ const { error } = await sb.auth.updateUser({ password:pw }); if(error) throw authErr(error); },
+  async updateProfile(p){ chk(await sb.from('profiles').update(p).eq('id', user.id)); },
+  async load(){
+    const [c, e, t] = await Promise.all([
+      sb.from('children').select('*').is('deleted_at', null).order('created_at'),
+      sb.from('entries').select('*').is('deleted_at', null).order('date', { ascending:false }),
+      sb.from('timers').select('*') ]);
+    [c,e,t].forEach(chk);
+    const children = c.data.map(rowToChild), alive = new Set(children.map(x=>x.id)), entries = {};
+    e.data.filter(r=>alive.has(r.child_id)).forEach(r=>{ const x = rowToEntry(r); (entries[r.block] = entries[r.block] || []).push(x); });
+    const timers = {}; t.data.forEach(r=>timers[r.child_id] = { type:r.type, kind:r.kind||'', start:Date.parse(r.started_at) });
+    await this.signPhotos([...children.map(x=>x.photo), ...e.data.map(r=>r.photo)]);
+    return { children, entries, timers };
+  },
+  async signPhotos(paths){
+    paths = [...new Set(paths.filter(p=>p && !p.startsWith('data:') && !photoCache[p]))];
+    for(let i=0;i<paths.length;i+=100){
+      const { data } = await sb.storage.from('photos').createSignedUrls(paths.slice(i,i+100), 60*60*24);
+      (data||[]).forEach(x=>{ if(x.signedUrl) photoCache[x.path] = x.signedUrl; });
+    }
+  },
+  async saveChild(c){
+    const row = { name:c.name, birth:c.birth, sex:c.sex||null, photo:c.photo||null };
+    const r = chk(c.id ? await sb.from('children').update(row).eq('id', c.id).select().single() : await sb.from('children').insert(row).select().single());
+    return rowToChild(r.data);
+  },
+  async deleteChild(id){ chk(await sb.from('children').update({ deleted_at:new Date().toISOString() }).eq('id', id)); },
+  async saveEntry(b, e){
+    const { id, childId, date, photo, deleted_at, _b, ...payload } = e;
+    const row = { block:b, child_id:childId, date, photo:photo||null, payload };
+    const r = chk(id ? await sb.from('entries').update(row).eq('id', id).select().single() : await sb.from('entries').insert(row).select().single());
+    return rowToEntry(r.data);
+  },
+  async deleteEntry(b, id){ chk(await sb.from('entries').update({ deleted_at:new Date().toISOString() }).eq('id', id)); },
+  async trash(){
+    const since = new Date(Date.now() - TRASH_DAYS*864e5).toISOString();
+    const [c, e, all] = await Promise.all([
+      sb.from('children').select('*').not('deleted_at','is',null).gt('deleted_at', since).order('deleted_at', { ascending:false }),
+      sb.from('entries').select('*').not('deleted_at','is',null).gt('deleted_at', since).order('deleted_at', { ascending:false }),
+      sb.from('children').select('id,name,deleted_at') ]);
+    [c,e,all].forEach(chk);
+    const dead = new Set(all.data.filter(x=>x.deleted_at).map(x=>x.id));
+    await this.signPhotos(e.data.map(r=>r.photo));
+    return { children:c.data.map(rowToChild), entries:e.data.filter(r=>!dead.has(r.child_id)).map(r=>({ b:r.block, e:rowToEntry(r) })), names:Object.fromEntries(all.data.map(x=>[x.id,x.name])) };
+  },
+  async restore(kind, id){ chk(await sb.from(kind==='child'?'children':'entries').update({ deleted_at:null }).eq('id', id)); },
+  async purge(kind, id){
+    const paths = kind==='child'
+      ? [ ...(chk(await sb.from('children').select('photo').eq('id', id)).data.map(r=>r.photo)), ...(chk(await sb.from('entries').select('photo').eq('child_id', id)).data.map(r=>r.photo)) ]
+      : chk(await sb.from('entries').select('photo').eq('id', id)).data.map(r=>r.photo);
+    chk(await sb.from(kind==='child'?'children':'entries').delete().eq('id', id));
+    const files = paths.filter(p=>p && !p.startsWith('data:'));
+    if(files.length) await sb.storage.from('photos').remove(files);
+  },
+  async setTimer(childId, T){
+    chk(T ? await sb.from('timers').upsert({ child_id:childId, type:T.type, kind:T.kind||null, started_at:new Date(T.start).toISOString() })
+          : await sb.from('timers').delete().eq('child_id', childId));
+  },
+  async wipe(){ chk(await sb.from('children').update({ deleted_at:new Date().toISOString() }).is('deleted_at', null)); },
+  async uploadPhoto(dataUrl){
+    const path = `${user.id}/${newId()}.jpg`;
+    const { error } = await sb.storage.from('photos').upload(path, dataUrlToBlob(dataUrl), { contentType:'image/jpeg' });
+    if(error){ console.error(error); throw 'Не вдалося завантажити фото. Перевірте інтернет.'; }
+    photoCache[path] = dataUrl; return path;
+  },
+  photoUrl(ref){ return !ref ? '' : ref.startsWith('data:') ? ref : (photoCache[ref] || ''); },
+  async photoBlob(ref){ if(ref.startsWith('data:')) return dataUrlToBlob(ref); const { data, error } = await sb.storage.from('photos').download(ref); if(error) throw NET; return data; }
+};
+const API = CLOUD ? Cloud : Local;
+const errText = e => Array.isArray(e) ? e[1] : (typeof e==='string' ? e : NET);
+async function busy(btn, fn){
+  const old = btn ? btn.innerHTML : ''; if(btn){ btn.disabled = true; btn.textContent = 'Зберігаємо…'; }
+  try{ return await fn(); } finally { if(btn && btn.isConnected){ btn.disabled = false; btn.innerHTML = old; } }
+}
+
+/* Телефон: приймаємо 067…, +380…, з пробілами чи дужками → +380XXXXXXXXX */
+function normPhone(p){
+  let d = String(p||'').replace(/\D/g,'');
+  if(d.length===10 && d[0]==='0') d = '38'+d;
+  if(d.length===9) d = '380'+d;
+  return d.length>=11 && d.length<=15 ? '+'+d : null;
+}
+const fmtPhone = p => { const m = /^\+380(\d{2})(\d{3})(\d{2})(\d{2})$/.exec(p||''); return m ? `+380 ${m[1]} ${m[2]} ${m[3]} ${m[4]}` : (p||''); };
+
+/* ---------- Тексти й контакти — замініть на свої ---------- */
+const LEGAL = {
+  privacy:{ title:'Політика конфіденційності', text:'Текст політики конфіденційності буде тут.\n\nЗамініть цей текст у константі LEGAL.privacy у коді.' },
+  terms:{ title:'Умови використання', text:'Текст умов використання буде тут.\n\nЗамініть цей текст у константі LEGAL.terms у коді.' }
+};
+const CONTACTS = {
+  email:'hello@koluska.app',
+  telegram:'https://t.me/koluska',
+  instagram:'https://instagram.com/koluska'
+};
+const SITE = 'https://koluska.app';
+
+/* ---------- Helpers ---------- */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso = d => { d = new Date(d); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const today = () => iso(new Date());
+function fmtDate(d){
+  if(!d) return '';
+  const x = new Date(d+'T12:00'), y = x.getFullYear() !== new Date().getFullYear();
+  return x.toLocaleDateString('uk-UA', y ? {day:'numeric',month:'long',year:'numeric'} : {day:'numeric',month:'long'});
+}
+function plural(n,a,b,c){ const m10=n%10, m100=n%100; return (m10===1&&m100!==11)?a:(m10>=2&&m10<=4&&(m100<10||m100>=20))?b:c; }
+function ageParts(birth, at){
+  if(!birth) return null;
+  const b = new Date(birth+'T12:00'), t = at ? new Date(at+'T12:00') : new Date();
+  if(t < b) return null;
+  let m = (t.getFullYear()-b.getFullYear())*12 + t.getMonth()-b.getMonth(), d = t.getDate()-b.getDate();
+  if(d < 0){ m--; d += new Date(t.getFullYear(), t.getMonth(), 0).getDate(); }
+  return { y:Math.floor(m/12), m:m%12, d, days:Math.floor((t-b)/864e5) };
+}
+function ageStr(birth, at, long){
+  const a = ageParts(birth, at); if(!a) return '';
+  if(a.y===0 && a.m===0) return a.days<14 ? `${a.days} ${plural(a.days,'день','дні','днів')}` : `${Math.floor(a.days/7)} ${plural(Math.floor(a.days/7),'тиждень','тижні','тижнів')}`;
+  const p = [];
+  if(a.y) p.push(`${a.y} ${plural(a.y,'рік','роки','років')}`);
+  if(a.m) p.push(`${a.m} ${plural(a.m,'місяць','місяці','місяців')}`);
+  if(long && a.d && a.y<1) p.push(`${a.d} ${plural(a.d,'день','дні','днів')}`);
+  return p.join(long ? ' · ' : ' ');
+}
+function toast(msg){
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2800);
+}
+function readPhoto(file){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => { const img = new Image(); img.onload = () => {
+      const s = Math.min(1, 1000/Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .78));
+    }; img.onerror = rej; img.src = r.result; };
+    r.onerror = rej; r.readAsDataURL(file);
+  });
+}
+
+/* ---------- Logo: півмісяць-колиска + сонячна крапка-малюк ---------- */
+const mark = (w=40) => `<svg class="mark" width="${w}" height="${Math.round(w*.75)}" viewBox="4 9 40 30" aria-hidden="true">
+  <path class="cradle" d="M5.27 11A20 20 0 1 0 42.73 11A20 20 0 0 1 5.27 11Z"/><circle class="baby" cx="24" cy="16" r="5.6"/></svg>`;
+const logo = (w=40) => `${mark(w)}<span class="wordmark lbl">koluska</span>`;
+
+/* ---------- Icons (лінія 1.75, округлі кінці, сітка 24) ---------- */
+const ICONS = {
+  home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
+  sparkle:'<path d="M12 3c.5 4 2 5.5 6 6-4 .5-5.5 2-6 6-.5-4-2-5.5-6-6 4-.5 5.5-2 6-6z"/><path d="M19 15c.2 1.6.8 2.2 2.4 2.4-1.6.2-2.2.8-2.4 2.4-.2-1.6-.8-2.2-2.4-2.4 1.6-.2 2.2-.8 2.4-2.4z"/>',
+  heart:'<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/>',
+  growth:'<path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/>',
+  moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="4"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/>',
+  quote:'<path d="M4 6h16v10H9l-5 4z"/><path d="M9 10h6"/>',
+  baby:'<circle cx="12" cy="9" r="5"/><path d="M6 21a6 6 0 0 1 12 0"/>',
+  sliders:'<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  logout:'<path d="M9 4H5v16h4"/><path d="M16 8l4 4-4 4"/><path d="M20 12H10"/>',
+  chevrons:'<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  play:'<path d="M8 5v14l11-7z"/>',
+  pause:'<path d="M9 5v14M15 5v14"/>',
+  bottle:'<path d="M9.5 3h5"/><path d="M10 3v3L8 9v11a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9l-2-3V3"/><path d="M8 13h8"/>',
+  trash:'<path d="M4 7h16"/><path d="M10 3h4"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v5M14 11v5"/>',
+  download:'<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
+  chev:'<path d="m9 6 6 6-6 6"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="4"/><path d="m4 7 8 6 8-6"/>',
+  send:'<path d="M21 4 3 11l7 2 2 7z"/><path d="m10 13 4-4"/>',
+  share:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="4"/><path d="M16 3v4M8 3v4M3 10h18"/>'
+};
+const ic = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`;
+
+/* ---------- Розділи (брендбук: Перші моменти, Здоров'я, Ріст і вага, Сон і годування, Фото, Слова) ---------- */
+const TONE = {
+  honey:{ soft:'var(--honey-soft)', dot:'var(--honey)', lc:'var(--text)' },
+  sage: { soft:'var(--sage-soft)',  dot:'var(--sage)',  lc:'var(--sage-text)' },
+  rose: { soft:'var(--rose-soft)',  dot:'var(--bloom)', lc:'var(--rose-text)' }
+};
+const FIRSTS = ['Перша усмішка','Тримає голівку','Перевертається','Перший сміх','Сидить сам','Перший зубчик','Повзає','Перше слово','Стоїть з опорою','Перші кроки','Плескає в долоні','Їсть ложкою'];
+const BLOCKS = {
+  milestones:{ title:'Перші моменти', label:'Перше', icon:'sparkle', tone:'honey',
+    lead:'Перша усмішка, перший зубчик, перші кроки. Дату й вік запишемо самі.',
+    fields:[ {k:'title',l:'Що сталося вперше',t:'text',req:1,suggest:FIRSTS}, {k:'date',l:'Коли',t:'date',req:1}, {k:'note',l:'Кілька слів',t:'textarea',ph:'Сьогодні вперше…'}, {k:'photo',l:'Фото',t:'photo'} ],
+    card:e=>({ ttl:e.title, txt:e.note }) },
+  health:{ title:'Здоров’я', label:'Здоров’я', icon:'heart', tone:'sage',
+    lead:'Щеплення, візити, ліки й температура. Візит із майбутньою датою з’явиться в «Заплановано».',
+    fields:[ {k:'type',l:'Що записуємо',t:'select',opts:['Щеплення','Візит до лікаря','Температура','Застуда чи хвороба','Ліки','Алергія','Аналізи','Інше'],req:1},
+             {k:'title',l:'Назва',t:'text',ph:'Напр. огляд педіатра'}, {k:'date',l:'Коли',t:'date',req:1,half:1}, {k:'temp',l:'Температура, °C',t:'number',step:'0.1',half:1},
+             {k:'doctor',l:'Лікар чи клініка',t:'text'}, {k:'note',l:'Нотатки',t:'textarea',ph:'Призначення, як почувається…'} ],
+    card:e=>({ tag:e.type, ttl: e.temp ? `Записали ${String(e.temp).replace('.',',')}°` + (e.title?` · ${e.title}`:'') : (e.title||e.type), txt:[e.doctor,e.note].filter(Boolean).join('\n'),
+               hint: e.type==='Температура'||e.temp ? 'Якщо хвилюєтеся — зверніться до педіатра.' : '' }) },
+  growth:{ title:'Ріст і вага', label:'Ріст', icon:'growth', tone:'rose',
+    lead:'Додайте вимірювання — графік намалюється сам.',
+    fields:[ {k:'date',l:'Коли',t:'date',req:1}, {k:'weight',l:'Вага, кг',t:'number',step:'0.01',half:1}, {k:'height',l:'Зріст, см',t:'number',step:'0.1',half:1}, {k:'head',l:'Окружність голови, см',t:'number',step:'0.1'}, {k:'note',l:'Нотатки',t:'textarea'} ],
+    card:e=>({ ttl:[e.weight&&`${String(e.weight).replace('.',',')} кг`, e.height&&`${String(e.height).replace('.',',')} см`].filter(Boolean).join(' · ') || 'Вимірювання', txt:[e.head&&`Голова: ${e.head} см`, e.note].filter(Boolean).join('\n') }) },
+  care:{ title:'Сон і годування', label:'Сон', icon:'moon', tone:'rose',
+    lead:'Коли заснув, коли поїв. Тривалість порахуємо самі.',
+    fields:[ {k:'type',l:'Що записуємо',t:'select',opts:['Сон','Грудне','Суміш','Прикорм','Вода'],req:1},
+             {k:'kind',l:'Який сон',t:'select',opts:['Денний','Нічний'],when:v=>v.type==='Сон'},
+             {k:'date',l:'Коли',t:'date',req:1}, {k:'from',l:'Початок',t:'time',half:1}, {k:'to',l:'Кінець',t:'time',half:1},
+             {k:'amount',l:'Скільки',t:'text',ph:'120 мл, 15 хв, 2 ложечки',when:v=>v.type!=='Сон'}, {k:'note',l:'Кілька слів',t:'textarea',ph:'Перший кабачок — сподобався'} ],
+    card:e=>({ tag:e.type==='Сон' ? (e.kind?`${e.kind} сон`:'Сон') : 'Годування',
+               ttl: e.type==='Сон' ? [e.from&&e.to?`${e.from}–${e.to}`:e.from, dur(e.from,e.to)].filter(Boolean).join(' · ') || 'Сон'
+                                   : [e.type, e.from&&e.to?`${e.from}–${e.to}`:'', e.amount].filter(Boolean).join(' · '), txt:e.note, time:e.from }) },
+  photos:{ title:'Фото', label:'Фото', icon:'image', tone:'rose',
+    lead:'Фото й одне речення. Цього достатньо, щоб спогад залишився.',
+    fields:[ {k:'photo',l:'Фото',t:'photo',req:1}, {k:'date',l:'Коли',t:'date',req:1}, {k:'note',l:'Кілька слів',t:'textarea'} ],
+    card:e=>({ txt:e.note }) },
+  words:{ title:'Слова', label:'Слова', icon:'quote', tone:'rose',
+    lead:'Перші слова й смішні вигадки. Щоб не забулися.',
+    fields:[ {k:'word',l:'Що сказав малюк',t:'text',req:1,ph:'дай'}, {k:'meaning',l:'Що це означає',t:'text'}, {k:'date',l:'Коли',t:'date',req:1}, {k:'note',l:'Як це було',t:'textarea'} ],
+    card:e=>({ word:e.word, ttl:e.meaning, txt:e.note }) }
+};
+function dur(a, b){
+  if(!a||!b) return '';
+  const [h1,m1]=a.split(':').map(Number), [h2,m2]=b.split(':').map(Number);
+  let m = (h2*60+m2)-(h1*60+m1); if(m<0) m+=1440;
+  return `${Math.floor(m/60)} год ${m%60} хв`;
+}
+const NAV = [
+  {k:'overview', title:'Огляд', icon:'home', tone:'rose'},
+  ...Object.entries(BLOCKS).map(([k,b])=>({k, title:b.title, icon:b.icon, tone:b.tone, dot:true})),
+  {sep:true},
+  {k:'children', title:'Малюки', icon:'baby', tone:'rose'},
+  {k:'trash', title:'Кошик', icon:'trash', tone:'rose'},
+  {k:'settings', title:'Налаштування', icon:'sliders', tone:'rose'}
+];
+const toneVars = t => { const x = TONE[t]||TONE.rose; return `--soft:${x.soft};--lc:${x.lc};--dot:${x.dot}`; };
+
+/* ---------- State ---------- */
+let user = null, data = null, view = 'overview', authTab = 'login';
+const draft = { name:'', email:'', phone:'', terms:false, news:false }; // зберігає введене при перемиканні вкладок і помилках
+let collapsed = Store.get('collapsed', false);
+let activeId = null, authInfo = '';
+const setActive = id => { activeId = id; Store.set('active:'+user.id, id); };
+const child = () => data.children.find(c=>c.id===activeId) || data.children[0] || null;
+const P = ref => esc(API.photoUrl(ref));
+const key = e => (e.date||'') + (e.from||e.time||'');
+const list = b => (data.entries[b]||[]).filter(e=>e.childId===child()?.id).sort((x,y)=>key(y).localeCompare(key(x)));
+function applyTheme(){
+  const t = Store.get('theme','auto');
+  if(t==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
+}
+const initial = s => esc((s||'?').trim().charAt(0).toUpperCase());
+
+/* ---------- Auth screen ---------- */
+function renderAuth(){
+  const reg = authTab==='register';
+  document.getElementById('root').innerHTML = `
+  <div class="auth">
+    <svg class="deco" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <circle cx="40" cy="120" r="70" fill="var(--rose-soft)"/><circle cx="360" cy="700" r="110" fill="var(--sage-soft)"/>
+      <circle cx="340" cy="110" r="10" fill="var(--honey)" opacity=".7"/><circle cx="60" cy="650" r="6" fill="var(--honey)" opacity=".7"/><circle cx="300" cy="200" r="4" fill="var(--bloom)" opacity=".7"/>
+    </svg>
+    <div class="auth-card">
+      <div class="auth-logo">${mark(64)}<span class="wordmark" style="font-size:30px">koluska</span></div>
+      <h1>Щоденник перших днів вашого малюка</h1>
+      <p class="sub">Записуйте кожне «вперше» за 10 секунд. Бачить лише ваша сім’я.</p>
+      <div class="tabs" role="tablist">
+        <button class="${!reg?'on':''}" data-tab="login">Вхід</button>
+        <button class="${reg?'on':''}" data-tab="register">Реєстрація</button>
+      </div>
+      ${authInfo?`<div class="info" role="status">${esc(authInfo)}</div>`:''}
+      <form id="authForm" novalidate>
+        ${reg?`<div class="field"><label for="a-name">Ваше ім’я</label><input id="a-name" name="name" autocomplete="name" value="${esc(draft.name)}" required></div>`:''}
+        <div class="field"><label for="a-email">Email</label><input id="a-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" value="${esc(draft.email)}" required></div>
+        ${reg?`<div class="field"><label for="a-phone">Номер телефону</label><input id="a-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 123 45 67" value="${esc(draft.phone)}" required></div>`:''}
+        <div class="field"><label for="a-pass">Пароль</label><input id="a-pass" name="pass" required type="password" autocomplete="${reg?'new-password':'current-password'}" placeholder="${reg?'Щонайменше 6 символів':''}"></div>
+        ${!reg?`<div style="margin:-6px 0 10px;text-align:right"><button type="button" class="link" data-forgot>Забули пароль?</button></div>`:''}
+        ${reg?`<label class="check"><input type="checkbox" name="terms" ${draft.terms?'checked':''}><span>Погоджуюся з <button type="button" class="link" data-legal="terms">умовами використання</button> та <button type="button" class="link" data-legal="privacy">політикою конфіденційності</button></span></label>
+        <label class="check"><input type="checkbox" name="news" ${draft.news?'checked':''}><span>Хочу отримувати поради й новини Koluska</span></label>`:''}
+        <div class="err" id="a-err" role="alert"></div>
+        <button class="btn primary block" type="submit">${reg?'Почати безкоштовно':'Увійти'}</button>
+      </form>
+      ${CLOUD ? '' : `<button class="btn ghost block" data-demo style="margin-top:6px">Подивитися демо</button>
+      <p class="note">Демо-режим: акаунти й записи зберігаються лише в цьому браузері.</p>`}
+    </div>
+  </div>`;
+  const form = document.getElementById('authForm');
+  form.addEventListener('input', ev => {
+    const el = ev.target; if(!(el.name in draft)) return;
+    draft[el.name] = el.type==='checkbox' ? el.checked : el.value;
+    el.classList.remove('bad');
+  });
+  form.onsubmit = async ev => {
+    ev.preventDefault();
+    const err = document.getElementById('a-err'); err.textContent = '';
+    form.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+    const btn = form.querySelector('[type=submit]');
+    try{
+      if(reg){
+        const v = validateSignUp({ ...draft, pass:form.elements.pass.value });
+        const r = await busy(btn, ()=>API.signUp(v));
+        Object.assign(draft, { name:'', phone:'', terms:false, news:false });
+        if(r.needsConfirm){ authInfo = `Ми надіслали лист на ${v.email}. Підтвердіть пошту — і входьте.`; authTab = 'login'; draft.email = v.email; renderAuth(); return; }
+      } else await busy(btn, ()=>API.signIn(form.elements.email.value, form.elements.pass.value));
+      authInfo = ''; boot();
+    }catch(e){
+      const [field, msg] = Array.isArray(e) ? e : [null, typeof e==='string' ? e : 'Не вдалося увійти. Спробуйте ще раз.'];
+      err.textContent = msg;
+      const el = field && form.elements[field];
+      if(el){ if(el.type!=='checkbox') el.classList.add('bad'); el.focus(); }
+    }
+  };
+}
+
+/* ---------- Demo ---------- */
+async function startDemo(){
+  const email = 'demo@koluska.app', users = Store.get('users', {});
+  if(!users[email]){ const salt = uid(); users[email] = { name:'Андрій', phone:'+380671234567', news:true, salt, hash: await sha(salt+'demo123') }; Store.set('users', users); }
+  Store.set('session', email);
+  if(!Store.get('data:'+email, null) || !Store.get('data:'+email, {}).timers){
+    const s = n => { const d = new Date(); d.setDate(d.getDate()+n); return iso(d); };
+    const id = uid(), E = o => ({ id:uid(), childId:id, ...o });
+    Store.set('active:'+email, id);
+    Store.set('data:'+email, { timers:{}, children:[{ id, name:'Софійка', birth:s(-226), sex:'Дівчинка' }], entries:{
+      milestones:[ E({title:'Перша усмішка',date:s(-182),note:'Посміхнулася татові зранку, ще сонна.'}), E({title:'Перевертається',date:s(-110)}),
+                   E({title:'Перший сміх',date:s(0),note:'Сьогодні вперше засміялася, коли тато чхнув.'}), E({title:'Перший зубчик',date:s(-20),note:'Нижній. Кілька неспокійних ночей — і ось він.'}) ],
+      health:[ E({type:'Щеплення',title:'Гепатит B',date:s(-225),doctor:'Пологовий будинок'}), E({type:'Щеплення',title:'Перше щеплення',date:s(-12),note:'Трохи поплакала й заснула на руках.'}),
+               E({type:'Температура',date:s(-30),temp:'38.2',note:'Після зубчика. Наступного дня минулося.'}), E({type:'Візит до лікаря',title:'Огляд педіатра',date:s(21),doctor:'Др. Коваль'}) ],
+      growth:[ E({date:s(-226),weight:'3.2',height:'50',head:'34'}), E({date:s(-170),weight:'5.1',height:'57'}), E({date:s(-110),weight:'6.4',height:'62'}), E({date:s(-50),weight:'7.3',height:'66',head:'42'}), E({date:s(-5),weight:'7.9',height:'68'}) ],
+      care:[ E({type:'Прикорм',date:s(-40),amount:'2 ложечки',note:'Перший кабачок — сподобався.'}), E({type:'Сон',kind:'Нічний',date:s(-1),from:'21:15',to:'06:40'}), E({type:'Сон',kind:'Денний',date:s(-1),from:'12:30',to:'14:05'}), E({type:'Грудне',date:s(0),from:'03:10',to:'03:25',amount:'15 хв'}) ],
+      photos:[], words:[ E({word:'дай',meaning:'хочу оце',date:s(-3),note:'Показувала на тата й на печиво.'}) ]
+    }});
+  }
+  boot();
+}
+
+/* «Спогад» — лише для «Перших моментів», у решті розділів — «запис» */
+const WORDS = b => b==='milestones'
+  ? { add:'Додати спогад', edit:'Змінити спогад', del:'Видалити цей спогад?', deleted:'Спогад видалено.', saved:'Збережено. Цей момент уже з вами назавжди.', empty:'Тут з’явиться перший спогад', emptyP:'Фото, кілька слів — і момент залишиться з вами назавжди.' }
+  : { add:'Додати запис', edit:'Змінити запис', del:'Видалити цей запис?', deleted:'Запис видалено.', saved:'Запис збережено.', empty:'Тут з’явиться перший запис', emptyP:'Заповнення займе кілька секунд.' };
+
+/* ---------- Таймер сну й годування ---------- */
+const timerOf = () => (child() && data.timers) ? data.timers[child().id] : null;
+const defaultKind = (d=new Date()) => { const h = d.getHours(); return (h>=19 || h<6) ? 'Нічний' : 'Денний'; };
+const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+function elapsed(ms){
+  const s = Math.max(0, Math.floor(ms/1000)), h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return (h ? h+':'+String(m).padStart(2,'0') : String(m)) + ':' + String(x).padStart(2,'0');
+}
+const timerLabel = T => T.type==='Сон' ? `${T.kind||'Денний'} сон` : T.type==='Грудне' ? 'Годування груддю' : T.type;
+async function startTimer(type, kind){
+  const c = child(); if(!c) return;
+  if(data.timers[c.id]){ toast('Таймер уже йде. Спершу натисніть «Пауза».'); return; }
+  const T = { type, kind: type==='Сон' ? (kind || defaultKind()) : '', start: Date.now() };
+  try{ await API.setTimer(c.id, T); }catch(e){ toast(errText(e)); return; }
+  data.timers[c.id] = T; closeModal(); renderApp(); toast('Час пішов. Натисніть «Пауза», коли закінчите.');
+}
+async function stopTimer(btn){
+  const c = child(), T = timerOf(); if(!T) return;
+  const end = Date.now(), min = Math.max(1, Math.round((end-T.start)/60000));
+  try{
+    const saved = await busy(btn, async ()=>{
+      const e = await API.saveEntry('care', { childId:c.id, type:T.type, kind:T.kind||'', date:iso(new Date(T.start)),
+        from:hhmm(T.start), to:hhmm(end), amount: T.type==='Грудне' ? `${min} хв` : '', note:'' });
+      await API.setTimer(c.id, null); return e;
+    });
+    (data.entries.care = data.entries.care || []).push(saved);
+    delete data.timers[c.id];
+    renderApp(); toast(`Збережено: ${timerLabel(T).toLowerCase()} ${hhmm(T.start)}–${hhmm(end)}.`);
+  }catch(e){ toast(errText(e)); }
+}
+async function cancelTimer(){
+  if(!await ask('Скасувати таймер без запису?', 'Скасувати')) return;
+  try{ await API.setTimer(child().id, null); }catch(e){ toast(errText(e)); return; }
+  delete data.timers[child().id]; renderApp();
+}
+function timerHTML(){
+  const T = timerOf(); if(!T) return '';
+  return `<div class="timer" role="timer" aria-live="off">
+    <span class="sw" style="${toneVars('rose')}">${ic(T.type==='Сон'?'moon':'bottle')}</span>
+    <span class="tb"><small><span class="run"></span>${esc(timerLabel(T))}</small><span><b data-elapsed="${T.start}">${elapsed(Date.now()-T.start)}</b> <span class="since">з ${hhmm(T.start)}</span></span></span>
+    <button class="icon-btn" data-timer-cancel aria-label="Скасувати таймер">${ic('x')}</button>
+    <button class="btn primary" data-timer-stop>${ic('pause')} Пауза</button>
+  </div>`;
+}
+setInterval(()=>document.querySelectorAll('[data-elapsed]').forEach(el=>{ el.textContent = elapsed(Date.now() - Number(el.dataset.elapsed)); }), 1000);
+
+/* ---------- App shell ---------- */
+function renderApp(){
+  const c = child(), cur = NAV.find(n=>n.k===view) || NAV[0];
+  const title = view==='overview' && c ? `Щоденник ${esc(genitive(c.name))}` : esc(cur.title);
+  const canAdd = !!c;
+  document.getElementById('root').innerHTML = `
+  <div class="app ${collapsed?'collapsed':''}" id="app">
+    <div class="backdrop" data-close-menu></div>
+    <aside class="sb" aria-label="Меню">
+      <div class="sb-head">
+        <button class="logo" data-nav="overview" aria-label="Koluska — на головну">${logo(38)}</button>
+        <button class="icon-btn collapse-btn" data-collapse aria-label="Згорнути меню">${ic('chevrons')}</button>
+        <button class="icon-btn menu-btn" data-close-menu aria-label="Закрити меню">${ic('x')}</button>
+      </div>
+      ${c ? `<button class="child-card" data-nav="children" title="${esc(c.name)}">
+        <span class="avatar">${c.photo&&API.photoUrl(c.photo)?`<img src="${P(c.photo)}" alt="">`:initial(c.name)}</span>
+        <span class="meta"><b>${esc(c.name)}</b><small>${ageStr(c.birth)||'—'}</small></span></button>`
+      : `<button class="child-card" data-add-child><span class="avatar">${ic('plus')}</span><span class="meta"><b>Додати малюка</b><small>і почати щоденник</small></span></button>`}
+      <nav class="menu">
+        ${NAV.map(n=> n.sep ? '<div class="sb-sep"></div>' :
+          `<button class="nav-item ${n.k===view?'on':''}" style="${toneVars(n.tone)}" data-nav="${n.k}" title="${esc(n.title)}">${ic(n.icon)}<span class="lbl">${esc(n.title)}</span>${n.dot?`<span class="dot" style="background:var(--dot)"></span>`:''}</button>`).join('')}
+      </nav>
+      <div class="sb-foot">
+        <label class="lang" title="Мова">${ic('globe')}<select aria-label="Мова"><option>UA</option><option disabled>EN — скоро</option></select></label>
+        <div class="user-row">
+          <span class="avatar">${initial(user.name)}</span>
+          <span class="meta"><b>${esc(user.name)}</b><small>${esc(user.email)}</small></span>
+          <button class="icon-btn" data-logout aria-label="Вийти">${ic('logout')}</button>
+        </div>
+      </div>
+    </aside>
+    <main class="main" id="main">
+      <div class="topbar">
+        <button class="icon-btn menu-btn" data-open-menu aria-label="Відкрити меню">${ic('menu')}</button>
+        <h1>${title}</h1>
+        ${view==='children' ? `<button class="btn soft" data-add-child>${ic('plus')} Малюк</button>`:''}
+      </div>
+      <div class="content">${renderView()}</div>
+      ${canAdd && view!=='trash' ? `<div class="fab-wrap">${timerHTML()}<button class="btn primary fab" data-main>${ic('plus')} ${WORDS(view).add}</button></div>` : ''}
+    </main>
+  </div>`;
+}
+function genitive(n){ // Софійка → Софійки, Марко → Марка (спрощено)
+  if(/ка$/.test(n)) return n.replace(/ка$/,'ки');
+  if(/я$/.test(n)) return n.replace(/я$/,'ї');
+  if(/а$/.test(n)) return n.replace(/а$/,'и');
+  if(/о$/.test(n)) return n.replace(/о$/,'а');
+  if(/[йь]$/.test(n)) return n.replace(/[йь]$/,'я');
+  if(/[бвгґджзклмнпрстфхцчшщ]$/i.test(n)) return n+'а';
+  return n;
+}
+
+function renderView(){
+  if(view==='settings') return viewSettings();
+  if(view==='children') return viewChildren();
+  if(view==='trash') return viewTrash();
+  if(!child()) return emptyState('Почнімо з малюка', 'Ім’я та дата народження — і щоденник готовий.', `<button class="btn primary" data-add-child>Додати малюка</button>`);
+  if(view==='overview') return viewOverview();
+  return viewBlock(view);
+}
+const emptyState = (h, p, btn) => `<div class="empty">${mark(56)}<h2>${h}</h2><p>${p}</p>${btn||''}</div>`;
+
+function cardHTML(b, e){
+  const B = BLOCKS[b], C = B.card(e), c = child();
+  const age = c && e.date ? ageStr(c.birth, e.date) : '';
+  return `<button class="card" style="${toneVars(B.tone)}" data-edit="${b}:${e.id}">
+    ${e.photo&&API.photoUrl(e.photo)?`<img class="ph" src="${P(e.photo)}" alt="" loading="lazy">`:''}
+    <span class="label">${esc(C.tag||B.label)}</span>
+    <span class="meta">${fmtDate(e.date)}${age?` · ${age}`:''}</span>
+    ${C.word?`<span class="word">«${esc(C.word)}»</span>`:''}
+    ${C.ttl?`<span class="ttl">${esc(C.ttl)}</span>`:''}
+    ${C.txt?`<span class="txt">${esc(C.txt)}</span>`:''}
+    ${C.hint?`<span class="hint">${esc(C.hint)}</span>`:''}
+  </button>`;
+}
+function rowHTML(b, e){
+  const B = BLOCKS[b], C = B.card(e);
+  return `<button class="row" style="${toneVars(B.tone)}" data-edit="${b}:${e.id}"><span class="sw">${ic(B.icon)}</span>
+    <span class="b"><b>${esc(C.word?`«${C.word}»`:C.ttl||B.title)}</b><small>${fmtDate(e.date)} · ${esc(C.tag||B.title)}</small></span></button>`;
+}
+
+function viewOverview(){
+  const c = child(), a = ageParts(c.birth), t = today();
+  const g = list('growth'), w = g.find(e=>e.weight), h = g.find(e=>e.height);
+  const recent = Object.keys(BLOCKS).flatMap(b=>list(b).filter(e=>e.date<=t).map(e=>({b,e})))
+    .sort((x,y)=>key(y.e).localeCompare(key(x.e))).slice(0,4);
+  const planned = list('health').filter(e=>e.date>t).reverse();
+  const md = t.slice(5);
+  const ago = Object.keys(BLOCKS).flatMap(b=>list(b).filter(e=>e.date && e.date.slice(5)===md && e.date<t).map(e=>({b,e})));
+  const total = Object.keys(BLOCKS).reduce((n,b)=>n+list(b).length,0);
+  return `
+  <section class="hero">
+    <span class="avatar">${c.photo&&API.photoUrl(c.photo)?`<img src="${P(c.photo)}" alt="">`:initial(c.name)}</span>
+    <div>
+      <div class="age">${a ? ageStr(c.birth, null, true) : 'Скоро зустрінемося'}</div>
+      <div class="who">${esc(c.name)} · день народження ${fmtDate(c.birth)}</div>
+    </div>
+    <span class="moon">${mark(88)}</span>
+  </section>
+  <div class="stats">
+    <div class="stat" style="--c:var(--bloom)"><small><i></i>Вага</small><b>${w?String(w.weight).replace('.',',')+' кг':'—'}</b></div>
+    <div class="stat" style="--c:var(--bloom)"><small><i></i>Зріст</small><b>${h?String(h.height).replace('.',',')+' см':'—'}</b></div>
+    <div class="stat" style="--c:var(--honey)"><small><i></i>Перші моменти</small><b>${list('milestones').length}</b></div>
+    <div class="stat" style="--c:var(--sage)"><small><i></i>Усього записів</small><b>${total}</b></div>
+  </div>
+  ${ago.length?`<div class="panel" style="margin-bottom:16px;${toneVars('honey')};background:var(--honey-soft);box-shadow:none"><h2>Цього дня колись</h2><div class="rows">${ago.map(x=>rowHTML(x.b,x.e)).join('')}</div></div>`:''}
+  <div class="two">
+    <div><h2 style="font-size:22px;line-height:30px;margin:0 0 12px">Останні записи</h2>
+      ${recent.length ? `<div class="cards">${recent.map(x=>cardHTML(x.b,x.e)).join('')}</div>` : emptyState('Тут з’явиться перший запис','Оберіть розділ і додайте перший запис.')}
+    </div>
+    <div style="display:grid;gap:16px;align-content:start">
+      <div class="panel"><h2>Заплановано</h2>
+        ${planned.length ? `<div class="rows">${planned.map(e=>rowHTML('health',e)).join('')}</div>` : `<p class="quiet">Додайте візит чи щеплення з майбутньою датою.</p>`}
+      </div>
+      <div class="panel"><h2>Розділи</h2>
+        <div class="quick">${Object.entries(BLOCKS).map(([k,b])=>`<button style="${toneVars(b.tone)}" data-nav="${k}">${ic(b.icon)}${esc(b.title)}</button>`).join('')}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function viewBlock(b){
+  const B = BLOCKS[b], items = list(b);
+  let extra = '';
+  if(b==='milestones'){
+    const done = new Set(items.map(e=>e.title));
+    const next = FIRSTS.filter(m=>!done.has(m));
+    if(next.length) extra = `<div class="chips">${next.map(m=>`<button class="chip" data-add="milestones" data-preset="${esc(m)}">${esc(m)}</button>`).join('')}</div>`;
+  }
+  if(b==='care'){
+    const busy = !!timerOf();
+    const st = (type, kind, label, icon) => `<button class="btn soft" data-start="${type}|${kind}" ${busy?'disabled style="opacity:.5"':''}>${ic(icon)} ${label}</button>`;
+    extra = `<div class="starts"><p>${busy ? 'Таймер уже йде — він унизу екрана.' : 'Почати таймер: натисніть, і час піде сам.'}</p>
+      ${st('Сон','Денний','Денний сон','moon')}${st('Сон','Нічний','Нічний сон','moon')}${st('Грудне','','Годування груддю','bottle')}</div>`;
+  }
+  if(b==='growth'){
+    const pts = k => items.filter(e=>e[k]).map(e=>({d:e.date, v:parseFloat(e[k])})).reverse();
+    extra = `<div class="charts">${chart('Вага', pts('weight'), 'кг', 'var(--rose)')}${chart('Зріст', pts('height'), 'см', 'var(--sage)')}</div>`;
+  }
+  return `<div class="section-head" style="${toneVars(B.tone)}"><span class="sw" style="background:var(--raised)">${ic(B.icon)}</span><p>${esc(B.lead)}</p></div>
+    ${extra}
+    ${items.length ? `<div class="cards">${items.map(e=>cardHTML(b,e)).join('')}</div>`
+      : emptyState(WORDS(b).empty, WORDS(b).emptyP, `<button class="btn primary" data-add="${b}">${WORDS(b).add}</button>`)}`;
+}
+
+function chart(title, pts, unit, color){
+  const W=320, H=150, P=26;
+  const num = v => String(v).replace('.',',');
+  if(pts.length<2) return `<div class="panel chart"><div class="cap"><span>${title}</span><b>${pts[0]?num(pts[0].v)+' '+unit:'—'}</b></div><p class="quiet">Графік з’явиться після двох вимірювань.</p></div>`;
+  const t = pts.map(p=>new Date(p.d+'T12:00').getTime()), v = pts.map(p=>p.v);
+  const t0=Math.min(...t), t1=Math.max(...t), v0=Math.min(...v), v1=Math.max(...v);
+  const x = i => P + (t1===t0?0:(t[i]-t0)/(t1-t0))*(W-P*1.6);
+  const y = i => (H-P) - (v1===v0?.5:(v[i]-v0)/(v1-v0))*(H-P*1.9);
+  const path = pts.map((_,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(i).toFixed(1)}`).join('');
+  return `<div class="panel chart"><div class="cap"><span>${title}</span><b>${num(v[v.length-1])} ${unit}</b></div>
+  <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${title}: від ${num(v0)} до ${num(v1)} ${unit}">
+    <line x1="${P}" y1="${H-P+6}" x2="${W-P*.6}" y2="${H-P+6}" stroke="var(--line)" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="${P}" y="${H-4}" font-size="11" fill="var(--muted)" font-family="Nunito,sans-serif">${fmtDate(pts[0].d)}</text>
+    <text x="${W-P*.6}" y="${H-4}" font-size="11" fill="var(--muted)" text-anchor="end" font-family="Nunito,sans-serif">${fmtDate(pts[pts.length-1].d)}</text>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${pts.map((p,i)=>`<circle cx="${x(i)}" cy="${y(i)}" r="4.5" fill="var(--raised)" stroke="${color}" stroke-width="2"><title>${fmtDate(p.d)}: ${num(p.v)} ${unit}</title></circle>`).join('')}
+  </svg></div>`;
+}
+
+function viewChildren(){
+  if(!data.children.length) return emptyState('Ще немає малюків', 'Можна додати кількох — у кожного свій щоденник.', `<button class="btn primary" data-add-child>Додати малюка</button>`);
+  return `<div class="kids">${data.children.map(c=>`
+    <div class="kid ${c.id===child().id?'on':''}">
+      <span class="avatar">${c.photo&&API.photoUrl(c.photo)?`<img src="${P(c.photo)}" alt="">`:initial(c.name)}</span>
+      <span class="meta"><b>${esc(c.name)}</b><small>${ageStr(c.birth)||'—'}</small></span>
+      ${c.id===child().id?'':`<button class="btn soft" data-pick="${c.id}">Відкрити</button>`}
+      <button class="icon-btn" data-edit-child="${c.id}" aria-label="Змінити профіль">${ic('sliders')}</button>
+    </div>`).join('')}</div>`;
+}
+
+function viewTrash(){
+  setTimeout(fillTrash, 0);
+  return `<div class="section-head" style="${toneVars('rose')}"><span class="sw" style="background:var(--raised)">${ic('trash')}</span><p>Видалене лежить тут ${TRASH_DAYS} днів. Потім зникає назавжди.</p></div><div id="trash"><p class="quiet">Відкриваємо кошик…</p></div>`;
+}
+async function fillTrash(){
+  const el = document.getElementById('trash'); if(!el) return;
+  let t; try{ t = await API.trash(); }catch(e){ el.innerHTML = `<p class="quiet">${esc(errText(e))}</p>`; return; }
+  const left = d => Math.max(0, TRASH_DAYS - Math.floor((Date.now()-Date.parse(d))/864e5));
+  const daysTxt = d => { const n = left(d); return n ? `ще ${n} ${plural(n,'день','дні','днів')}` : 'зникне сьогодні'; };
+  const row = (kind, id, icon, tone, title, sub) => `<div class="trash-row" style="${toneVars(tone)}"><span class="sw">${ic(icon)}</span>
+    <span class="b"><b>${esc(title)}</b><small>${esc(sub)}</small></span>
+    <button class="btn soft" data-restore="${kind}|${id}">Повернути</button><button class="btn ghost" data-purge="${kind}|${id}">Видалити назавжди</button></div>`;
+  const rows = [
+    ...t.children.map(c=>row('child', c.id, 'baby', 'rose', c.name, `Профіль малюка з усіма записами · ${daysTxt(c.deleted_at)}`)),
+    ...t.entries.map(({b,e})=>{ const B = BLOCKS[b]; if(!B) return ''; const C = B.card(e);
+      return row('entry', e.id, B.icon, B.tone, C.word?`«${C.word}»`:(C.ttl||B.title), `${B.title} · ${t.names[e.childId]||''} · ${fmtDate(e.date)} · ${daysTxt(e.deleted_at)}`); }) ];
+  el.innerHTML = rows.length ? `<div class="trash-list">${rows.join('')}</div>` : emptyState('Кошик порожній', 'Тут з’являться видалені записи. Їх можна буде повернути.');
+}
+async function exportAll(btn){
+  if(!window.JSZip){ toast('Не вдалося підготувати архів. Оновіть сторінку.'); return; }
+  try{
+    await busy(btn, async ()=>{
+      const d = await API.load(), zip = new window.JSZip(), photos = [];
+      const ph = ref => { if(!ref) return ''; const n = `photos/${photos.length+1}.jpg`; photos.push([n, ref]); return n; };
+      const clean = o => { const { _b, deleted_at, ...x } = o; return x; };
+      const out = { exported_at:new Date().toISOString(), account:{ name:user.name, email:user.email, phone:user.phone },
+        children: d.children.map(c=>({ ...clean(c), photo:ph(c.photo) })),
+        sections: Object.fromEntries(Object.entries(BLOCKS).map(([b,B])=>[B.title, (d.entries[b]||[]).map(e=>({ ...clean(e), photo:ph(e.photo) }))])) };
+      zip.file('koluska.json', JSON.stringify(out, null, 2));
+      for(const [n, ref] of photos){ try{ zip.file(n, await API.photoBlob(ref)); }catch(e){} }
+      const blob = await zip.generateAsync({ type:'blob' }), a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `koluska-${today()}.zip`;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 10000);
+    });
+    toast('Архів готовий — шукайте його в завантаженнях.');
+  }catch(e){ toast(errText(e)); }
+}
+
+function viewSettings(){
+  const t = Store.get('theme','auto');
+  const link = (attr, title, sub) => `<button class="set-link" ${attr}><span><b>${title}</b>${sub?`<small>${sub}</small>`:''}</span><span class="chev">${ic('chev')}</span></button>`;
+  return `<div class="settings">
+    <div class="panel"><h2>Акаунт</h2>
+      <div class="set-row"><div><b>${esc(user.name)}</b><small>${user.phone?esc(fmtPhone(user.phone)):'Телефон не вказано'}</small></div><button class="btn soft" data-profile>Змінити</button></div>
+      <div class="set-row"><div><b>Email для входу</b><small>${esc(user.email)}</small></div></div>
+      <div class="set-row"><div><b>Поради й новини</b><small>${user.news?'Надсилаємо':'Не надсилаємо'}</small></div>
+        <div class="seg"><button class="${user.news?'on':''}" data-news="1">Так</button><button class="${!user.news?'on':''}" data-news="0">Ні</button></div></div>
+      <div class="set-row"><div><b>Нічна тема</b><small>«Авто» — як у телефоні</small></div>
+        <div class="seg">${[['auto','Авто'],['light','Денна'],['dark','Нічна']].map(([k,l])=>`<button class="${t===k?'on':''}" data-theme="${k}">${l}</button>`).join('')}</div></div>
+    </div>
+    <div class="panel"><h2>Ваші дані</h2>
+      ${link('data-export','Завантажити мій щоденник','Архів з усіма записами й фото')}
+      ${link('data-nav="trash"','Кошик',`Видалене можна повернути протягом ${TRASH_DAYS} днів`)}
+    </div>
+    <div class="panel"><h2>Оплата</h2>
+      <div class="set-row"><div><b>Ваш тариф</b><small>Безкоштовний</small></div><button class="btn" disabled style="opacity:.55">Скоро</button></div>
+    </div>
+    <div class="panel"><h2>Політика та умови</h2>
+      ${link('data-legal="privacy"','Політика конфіденційності')}
+      ${link('data-legal="terms"','Умови використання')}
+    </div>
+    <div class="panel"><h2>Зворотний зв’язок</h2>
+      ${link('data-contact','Зв’язатися з нами','Питання, ідеї, щось не працює')}
+      ${link('data-share','Розкажіть про нас','Поділіться Koluska з друзями')}
+    </div>
+    <div class="panel">
+      <div class="set-row"><div><b>Вийти</b><small>${CLOUD?'Записи збережені в хмарі':'Записи залишаться на цьому пристрої'}</small></div><button class="btn" data-logout>${ic('logout')} Вийти</button></div>
+      <div class="set-row"><div><b>Стерти щоденник</b><small>Усе переїде в Кошик на ${TRASH_DAYS} днів</small></div><button class="btn danger" data-wipe>Стерти</button></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Modal + forms ---------- */
+function openModal(html){
+  closeModal();
+  const w = document.createElement('div'); w.className='modal-wrap'; w.id='modal';
+  w.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
+  w.addEventListener('mousedown', e=>{ if(e.target===w) closeModal(); });
+  document.body.appendChild(w);
+  setTimeout(()=>w.querySelector('input:not([type=file]):not([type=hidden]),select,textarea,button')?.focus(), 30);
+  return w;
+}
+const closeModal = () => document.getElementById('modal')?.remove();
+
+function fieldHTML(f, val){
+  const id = 'f-'+f.k, v = esc(val ?? (f.t==='date'?today():''));
+  if(f.t==='photo') return `<div class="field"><label>${f.l}</label><div class="photo-box" data-photo="${f.k}">
+      ${val&&API.photoUrl(val)?`<img src="${P(val)}" alt="">`:''}
+      <label class="btn soft">${ic('camera')} ${val?'Замінити':'Додати фото'}<input type="file" accept="image/*" hidden></label>
+      ${val?`<button type="button" class="btn ghost" data-rm-photo>Прибрати</button>`:''}
+      <input type="hidden" name="${f.k}" value="${val?'__keep':''}"></div></div>`;
+  let inp;
+  if(f.t==='textarea') inp = `<textarea id="${id}" name="${f.k}" placeholder="${esc(f.ph||'')}">${v}</textarea>`;
+  else if(f.t==='select') inp = `<select id="${id}" name="${f.k}">${f.opts.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  else inp = `<input id="${id}" name="${f.k}" type="${f.t}" ${f.step?`step="${f.step}" inputmode="decimal"`:''} value="${v}" placeholder="${esc(f.ph||'')}" ${f.suggest?`list="dl-${f.k}"`:''}>${f.suggest?`<datalist id="dl-${f.k}">${f.suggest.map(s=>`<option value="${esc(s)}">`).join('')}</datalist>`:''}`;
+  return `<div class="field" data-f="${f.k}"><label for="${id}">${f.l}</label>${inp}</div>`;
+}
+function fieldsHTML(fields, v){
+  let out = '', buf = [];
+  const flush = () => { if(buf.length===2) out += `<div class="row2">${buf.join('')}</div>`; else out += buf.join(''); buf = []; };
+  fields.forEach(f=>{ if(f.half){ buf.push(fieldHTML(f, v[f.k])); if(buf.length===2) flush(); } else { flush(); out += fieldHTML(f, v[f.k]); } });
+  flush(); return out;
+}
+function wireWhen(form, fields){
+  const sync = () => {
+    const v = {}; fields.forEach(f=>{ if(form.elements[f.k]) v[f.k] = form.elements[f.k].value; });
+    fields.filter(f=>f.when).forEach(f=>form.querySelector(`[data-f="${f.k}"]`)?.classList.toggle('hidden', !f.when(v)));
+  };
+  form.addEventListener('change', sync); sync();
+}
+function wirePhotos(w, photos){
+  w.querySelectorAll('[data-photo]').forEach(box=>{
+    const k = box.dataset.photo;
+    box.querySelector('input[type=file]').onchange = async ev => {
+      const f = ev.target.files[0]; if(!f) return;
+      try{ photos[k] = await readPhoto(f); }catch(e){ toast('Не вдалося відкрити фото. Спробуйте інше.'); return; }
+      let img = box.querySelector('img'); if(!img){ img = document.createElement('img'); img.alt=''; box.prepend(img); }
+      img.src = photos[k]; box.querySelector('input[type=hidden]').value='__new';
+    };
+    box.querySelector('[data-rm-photo]')?.addEventListener('click', ()=>{ photos[k]=''; box.querySelector('img')?.remove(); box.querySelector('input[type=hidden]').value=''; });
+  });
+}
+function collect(form, fields, photos, prev){
+  const out = {};
+  for(const f of fields){
+    const el = form.elements[f.k];
+    if(f.t==='photo'){ const s = el.value; out[f.k] = s==='__new' ? photos[f.k] : s==='__keep' ? prev?.[f.k] : ''; if(f.req && !out[f.k]) throw 'Додайте фото.'; continue; }
+    if(f.when && el.closest('.field')?.classList.contains('hidden')){ out[f.k] = ''; continue; }
+    const v = el.value.trim();
+    if(f.req && !v) throw `Заповніть «${f.l}».`;
+    out[f.k] = v;
+  }
+  return out;
+}
+
+/* Власне вікно підтвердження: працює і в браузері, і в застосунку */
+function ask(text, ok='Видалити'){
+  return new Promise(res => {
+    const w = document.createElement('div'); w.className='modal-wrap top';
+    w.innerHTML = `<div class="modal" role="alertdialog" aria-modal="true" style="max-width:400px"><h3>${esc(text)}</h3>
+      <div class="actions"><span class="sp"></span><button class="btn ghost" data-no>Пізніше</button><button class="btn primary" data-yes>${esc(ok)}</button></div></div>`;
+    const done = v => { w.remove(); res(v); };
+    w.querySelector('[data-no]').onclick = e => { e.stopPropagation(); done(false); };
+    w.querySelector('[data-yes]').onclick = e => { e.stopPropagation(); done(true); };
+    w.addEventListener('mousedown', e=>{ if(e.target===w) done(false); });
+    document.body.appendChild(w); w.querySelector('[data-yes]').focus();
+  });
+}
+function openLegal(k){
+  const L = LEGAL[k];
+  const w = document.createElement('div'); w.className='modal-wrap top';
+  w.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><h3>${esc(L.title)}</h3><div class="legal">${esc(L.text)}</div>
+    <div class="actions"><span class="sp"></span><button class="btn primary" data-x>Зрозуміло</button></div></div>`;
+  w.querySelector('[data-x]').onclick = e => { e.stopPropagation(); w.remove(); };
+  w.addEventListener('mousedown', e=>{ if(e.target===w) w.remove(); });
+  document.body.appendChild(w);
+}
+function openContact(){
+  const tg = CONTACTS.telegram.replace(/^https?:\/\/t\.me\//,'@'), ig = CONTACTS.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//,'@');
+  openModal(`<h3>Зв’язатися з нами</h3><p style="margin:-8px 0 16px;color:var(--muted)">Відповідаємо протягом дня.</p>
+    <div class="contacts">
+      <a href="mailto:${esc(CONTACTS.email)}" target="_blank" rel="noopener">${ic('mail')} Email <small>${esc(CONTACTS.email)}</small></a>
+      <a href="${esc(CONTACTS.telegram)}" target="_blank" rel="noopener">${ic('send')} Telegram <small>${esc(tg)}</small></a>
+      <a href="${esc(CONTACTS.instagram)}" target="_blank" rel="noopener">${ic('image')} Instagram <small>${esc(ig)}</small></a>
+    </div>
+    <div class="actions" style="margin-top:16px"><span class="sp"></span><button class="btn ghost" data-cancel>Закрити</button></div>`).querySelector('[data-cancel]').onclick = closeModal;
+}
+async function shareApp(){
+  const text = 'Koluska — щоденник перших днів малюка. Записуйте кожне «вперше» за 10 секунд.';
+  try{ if(navigator.share){ await navigator.share({ title:'Koluska', text, url:SITE }); return; } }catch(e){ if(e && e.name==='AbortError') return; }
+  try{ await navigator.clipboard.writeText(`${text} ${SITE}`); toast('Посилання скопійовано. Надішліть його друзям.'); }
+  catch(e){ openModal(`<h3>Розкажіть про нас</h3><div class="field"><label for="sh">Скопіюйте й надішліть</label><input id="sh" readonly value="${esc(SITE)}"></div>
+    <div class="actions"><span class="sp"></span><button class="btn ghost" data-cancel>Закрити</button></div>`).querySelector('[data-cancel]').onclick = closeModal; }
+}
+const PROFILE_FIELDS = [ {k:'name',l:'Ваше ім’я',t:'text',req:1}, {k:'phone',l:'Номер телефону',t:'tel',req:1,ph:'+380 67 123 45 67'} ];
+function openProfile(){
+  const w = openModal(`<h3>Ваші дані</h3><form id="pf" novalidate>${fieldsHTML(PROFILE_FIELDS, { name:user.name, phone:fmtPhone(user.phone) })}<div class="err" id="pf-err" role="alert"></div>
+    <div class="actions"><span class="sp"></span><button type="button" class="btn ghost" data-cancel>Пізніше</button><button class="btn primary" type="submit">Зберегти</button></div></form>`);
+  w.querySelector('[data-cancel]').onclick = closeModal;
+  w.querySelector('#pf').onsubmit = async ev => {
+    ev.preventDefault();
+    try{
+      const v = collect(ev.target, PROFILE_FIELDS, {}, null), phone = normPhone(v.phone);
+      if(!phone) throw 'Перевірте номер телефону, напр. +380 67 123 45 67.';
+      await busy(ev.submitter, ()=>API.updateProfile({ name:v.name, phone }));
+      Object.assign(user, { name:v.name, phone }); closeModal(); renderApp(); toast('Збережено.');
+    }catch(e){ w.querySelector('#pf-err').textContent = errText(e); }
+  };
+}
+
+function openPicker(){
+  openModal(`<h3>Що записуємо?</h3><div class="pick">${Object.entries(BLOCKS).map(([k,b])=>`<button style="${toneVars(b.tone)}" data-add="${k}"><span class="sw" style="background:var(--raised)">${ic(b.icon)}</span>${esc(b.title)}</button>`).join('')}</div>
+  <div class="actions"><span class="sp"></span><button class="btn ghost" data-cancel>Пізніше</button></div>`).querySelector('[data-cancel]').onclick = closeModal;
+}
+
+function openEntry(b, id, preset){
+  const B = BLOCKS[b], prev = id ? (data.entries[b]||[]).find(e=>e.id===id) : null;
+  const v = { ...(preset||{}), ...(prev||{}) }, photos = {};
+  if(b==='care' && !v.kind) v.kind = defaultKind();
+  const canTime = b==='care' && !prev && !timerOf();
+  const w = openModal(`<h3 style="${toneVars(B.tone)}"><span class="sw">${ic(B.icon)}</span>${prev?WORDS(b).edit:B.title}</h3>
+    <form id="ef" novalidate>${fieldsHTML(B.fields, v)}<div class="err" id="ef-err" role="alert"></div>
+    <div class="actions">${prev?`<button type="button" class="btn danger" data-del>Видалити</button>`:''}${canTime?`<button type="button" class="btn soft" data-form-start>${ic('play')} Почати таймер</button>`:''}<span class="sp"></span>
+    <button type="button" class="btn ghost" data-cancel>Пізніше</button><button class="btn primary" type="submit">Зберегти</button></div></form>`);
+  wirePhotos(w, photos);
+  wireWhen(w.querySelector('#ef'), B.fields);
+  w.querySelector('[data-form-start]')?.addEventListener('click', ()=>{ const f = w.querySelector('#ef').elements; startTimer(f.type.value, f.kind.value); });
+  w.querySelector('[data-cancel]').onclick = closeModal;
+  w.querySelector('[data-del]')?.addEventListener('click', async ()=>{
+    if(!await ask(WORDS(b).del)) return;
+    try{ await API.deleteEntry(b, id); }catch(e){ toast(errText(e)); return; }
+    data.entries[b] = data.entries[b].filter(e=>e.id!==id); closeModal(); renderApp(); toast(`${WORDS(b).deleted} Він у Кошику ${TRASH_DAYS} днів.`);
+  });
+  w.querySelector('#ef').onsubmit = async ev => {
+    ev.preventDefault();
+    try{
+      const vals = collect(ev.target, B.fields, photos, prev);
+      const saved = await busy(ev.submitter, async ()=>{
+        for(const f of B.fields) if(f.t==='photo' && vals[f.k] && vals[f.k].startsWith('data:')) vals[f.k] = await API.uploadPhoto(vals[f.k]);
+        return API.saveEntry(b, { ...(prev||{}), ...vals, id:prev?.id, childId:prev?.childId || child().id });
+      });
+      data.entries[b] = (data.entries[b] || []).filter(e=>e.id!==saved.id).concat(saved);
+      closeModal(); renderApp(); toast(WORDS(b).saved);
+    }catch(e){ w.querySelector('#ef-err').textContent = errText(e); }
+  };
+}
+
+const CHILD_FIELDS = [ {k:'name',l:'Ім’я',t:'text',req:1}, {k:'birth',l:'День народження',t:'date',req:1,half:1}, {k:'sex',l:'Хто',t:'select',opts:['Дівчинка','Хлопчик'],half:1}, {k:'photo',l:'Фото',t:'photo'} ];
+function openChild(id){
+  const prev = id ? data.children.find(c=>c.id===id) : null, photos = {};
+  const w = openModal(`<h3>${prev?'Профіль малюка':'Новий малюк'}</h3><form id="cf" novalidate>${fieldsHTML(CHILD_FIELDS, prev||{})}<div class="err" id="cf-err" role="alert"></div>
+    <div class="actions">${prev?`<button type="button" class="btn danger" data-del>Видалити</button>`:''}<span class="sp"></span>
+    <button type="button" class="btn ghost" data-cancel>Пізніше</button><button class="btn primary" type="submit">Зберегти</button></div></form>`);
+  wirePhotos(w, photos);
+  w.querySelector('[data-cancel]').onclick = closeModal;
+  w.querySelector('[data-del]')?.addEventListener('click', async ()=>{
+    if(!await ask(`Видалити профіль «${prev.name}» і всі його записи?`)) return;
+    try{ await API.deleteChild(id); }catch(e){ toast(errText(e)); return; }
+    data.children = data.children.filter(c=>c.id!==id);
+    Object.keys(data.entries).forEach(b=>data.entries[b]=data.entries[b].filter(e=>e.childId!==id));
+    setActive(data.children[0]?.id || null); closeModal(); renderApp(); toast(`Профіль у Кошику ${TRASH_DAYS} днів.`);
+  });
+  w.querySelector('#cf').onsubmit = async ev => {
+    ev.preventDefault();
+    try{
+      const vals = collect(ev.target, CHILD_FIELDS, photos, prev);
+      const saved = await busy(ev.submitter, async ()=>{
+        if(vals.photo && vals.photo.startsWith('data:')) vals.photo = await API.uploadPhoto(vals.photo);
+        return API.saveChild({ ...(prev||{}), ...vals, id:prev?.id });
+      });
+      data.children = data.children.filter(c=>c.id!==saved.id).concat(saved);
+      if(!prev){ setActive(saved.id); view = 'overview'; }
+      closeModal(); renderApp(); toast('Збережено.');
+    }catch(e){ w.querySelector('#cf-err').textContent = errText(e); }
+  };
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', e=>{
+  const t = e.target.closest('button,[data-close-menu]'); if(!t) return;
+  const d = t.dataset, app = document.getElementById('app');
+  if(d.tab){ authTab = d.tab; renderAuth(); }
+  else if('demo' in d) startDemo();
+  else if(d.nav){ view = d.nav; renderApp(); document.getElementById('main')?.scrollTo(0,0); }
+  else if('collapse' in d){ collapsed = !collapsed; Store.set('collapsed', collapsed); app.classList.toggle('collapsed', collapsed); }
+  else if('openMenu' in d) app.classList.add('open');
+  else if('closeMenu' in d) app.classList.remove('open');
+  else if('main' in d){ BLOCKS[view] ? openEntry(view) : openPicker(); }
+  else if(d.add) openEntry(d.add, null, d.preset ? { title:d.preset } : null);
+  else if(d.edit){ const [b,id] = d.edit.split(':'); openEntry(b, id); }
+  else if('addChild' in d) openChild();
+  else if(d.editChild) openChild(d.editChild);
+  else if(d.pick){ setActive(d.pick); view='overview'; renderApp(); }
+  else if('logout' in d){ API.signOut().finally(()=>{ user = null; data = null; view = 'overview'; boot(); }); }
+  else if('forgot' in d) openForgot();
+  else if('export' in d) exportAll(t);
+  else if(d.restore){ const [kind, id] = d.restore.split('|'); t.disabled = true;
+    API.restore(kind, id).then(async ()=>{ data = await API.load(); renderApp(); toast('Повернули на місце.'); }).catch(e=>{ t.disabled = false; toast(errText(e)); }); }
+  else if(d.purge){ const [kind, id] = d.purge.split('|');
+    ask('Видалити назавжди? Повернути вже не вийде.', 'Видалити').then(ok=>{ if(ok) API.purge(kind, id).then(fillTrash).catch(e=>toast(errText(e))); }); }
+  else if(d.theme){ Store.set('theme', d.theme); applyTheme(); renderApp(); }
+  else if('timerStop' in d) stopTimer(t);
+  else if('timerCancel' in d) cancelTimer();
+  else if(d.start){ const [type, kind] = d.start.split('|'); startTimer(type, kind); }
+  else if('profile' in d) openProfile();
+  else if(d.news){ const v = d.news==='1'; API.updateProfile({ news:v }).then(()=>{ user.news = v; renderApp(); }).catch(e=>toast(errText(e))); }
+  else if(d.legal) openLegal(d.legal);
+  else if('contact' in d) openContact();
+  else if('share' in d) shareApp();
+  else if('wipe' in d){ ask(`Перенести всіх малюків і записи в Кошик? Їх можна повернути протягом ${TRASH_DAYS} днів.`, 'Перенести').then(async ok=>{ if(!ok) return;
+    try{ await API.wipe(); data = await API.load(); setActive(null); view='overview'; renderApp(); }catch(e){ toast(errText(e)); } }); }
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); document.getElementById('app')?.classList.remove('open'); } });
+
+function openForgot(){
+  const w = document.createElement('div'); w.className='modal-wrap top';
+  w.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:420px"><h3>Новий пароль</h3>
+    <p style="margin:-8px 0 16px;color:var(--muted)">Надішлемо посилання для зміни пароля.</p>
+    <form novalidate><div class="field"><label for="fg">Email</label><input id="fg" type="email" autocomplete="email" value="${esc(draft.email)}"></div><div class="err" role="alert"></div>
+    <div class="actions"><span class="sp"></span><button type="button" class="btn ghost" data-x>Пізніше</button><button class="btn primary" type="submit">Надіслати</button></div></form></div>`;
+  const close = () => w.remove();
+  w.querySelector('[data-x]').onclick = e => { e.stopPropagation(); close(); };
+  w.querySelector('form').onsubmit = async ev => {
+    ev.preventDefault(); const email = w.querySelector('#fg').value;
+    try{ await busy(ev.submitter, ()=>API.resetPassword(email)); close(); authInfo = `Лист для зміни пароля надіслано на ${email.trim()}.`; renderAuth(); }
+    catch(e){ w.querySelector('.err').textContent = errText(e); }
+  };
+  document.body.appendChild(w); w.querySelector('#fg').focus();
+}
+function openNewPassword(){
+  const w = openModal(`<h3>Придумайте новий пароль</h3><form id="np" novalidate><div class="field"><label for="np1">Новий пароль</label><input id="np1" type="password" autocomplete="new-password" placeholder="Щонайменше 6 символів"></div>
+    <div class="err" role="alert"></div><div class="actions"><span class="sp"></span><button class="btn primary" type="submit">Зберегти</button></div></form>`);
+  w.querySelector('#np').onsubmit = async ev => {
+    ev.preventDefault(); const pw = w.querySelector('#np1').value;
+    if(pw.length < 6){ w.querySelector('.err').textContent = 'Пароль — щонайменше 6 символів.'; return; }
+    try{ await busy(ev.submitter, ()=>API.updatePassword(pw)); closeModal(); toast('Пароль змінено.'); }
+    catch(e){ w.querySelector('.err').textContent = errText(e); }
+  };
+}
+
+let recovering = false;
+if(CLOUD) sb.auth.onAuthStateChange(ev => {
+  if(ev==='PASSWORD_RECOVERY'){ recovering = true; if(user) openNewPassword(); }
+});
+
+async function boot(){
+  applyTheme();
+  document.getElementById('root').innerHTML = `<div class="loading"><div>${mark(64)}Відкриваємо щоденник…</div></div>`;
+  try{
+    user = await API.getUser();
+    if(!user){ renderAuth(); return; }
+    data = await API.load();
+    activeId = Store.get('active:'+user.id, null);
+    renderApp();
+    if(recovering){ recovering = false; openNewPassword(); }
+  }catch(e){
+    document.getElementById('root').innerHTML = `<div class="loading"><div>${mark(64)}${esc(errText(e))}<br><br><button class="btn primary" onclick="boot()">Спробувати ще раз</button></div></div>`;
+  }
+}
+boot();
+</script>
+</body>
+</html>
