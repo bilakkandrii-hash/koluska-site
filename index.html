@@ -318,8 +318,8 @@ const Store = {
    Поки поля порожні, сайт працює в демо-режимі (дані лише в браузері).
    ========================================================= */
 const CONFIG = {
-  SUPABASE_URL: '',
-  SUPABASE_ANON_KEY: ''
+  SUPABASE_URL: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhZHdjenRqZnBqYndxa2R2aWRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5ODI0NzgsImV4cCI6MjEwNzU1ODQ3OH0.aY_i2lNnxeI0iEcHr_dMXRZaJYReEvH0RrSF6ZQ5xuE',
+  SUPABASE_ANON_KEY: 'dadwcztjfpjbwqkdvidq'
 };
 const CLOUD = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && window.supabase);
 const sb = CLOUD ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
