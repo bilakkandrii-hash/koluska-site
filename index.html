@@ -243,7 +243,7 @@ nav.menu{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
 
 /* Modal */
 .modal-wrap{position:fixed;inset:0;z-index:50;background:var(--overlay);display:grid;place-items:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
-.modal{background:var(--raised);border-radius:28px;width:100%;max-width:520px;max-height:100%;overflow-y:auto;padding:26px 24px 22px;box-shadow:var(--shadow);animation:pop .18s ease-out}
+.modal{background:var(--raised);border-radius:28px;width:100%;max-width:560px;max-height:100%;overflow-y:auto;padding:26px 24px 22px;box-shadow:var(--shadow);animation:pop .18s ease-out}
 @keyframes pop{from{transform:translateY(10px);opacity:0}}
 .modal h3{margin:0 0 18px;font-size:22px;line-height:30px;font-weight:800;display:flex;align-items:center;gap:12px}
 .actions{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
@@ -635,13 +635,16 @@ const BLOCKS = {
     card:e=>({ ttl:[e.weight&&`${String(e.weight).replace('.',',')} кг`, e.height&&`${String(e.height).replace('.',',')} см`].filter(Boolean).join(' · ') || 'Вимірювання', txt:[e.head&&`Голова: ${e.head} см`, e.note].filter(Boolean).join('\n') }) },
   care:{ title:'Сон і годування', label:'Сон', icon:'moon', tone:'rose',
     lead:'Коли заснув, коли поїв. Тривалість порахуємо самі.',
-    fields:[ {k:'type',l:'Що записуємо',t:'select',opts:['Сон','Грудне','Суміш','Прикорм','Вода'],req:1},
+    fields:[ {k:'type',l:'Що записуємо',t:'select',opts:['Сон','Годування'],req:1},
              {k:'kind',l:'Який сон',t:'select',opts:['Денний','Нічний'],when:v=>v.type==='Сон'},
+             {k:'feed',l:'Як годували',t:'select',opts:[['Груди','Груди'],['Пляшечка','Пляшечка'],['Їжа','Їжа (прикорм)']],when:v=>v.type==='Годування'},
+             {k:'side',l:'Які груди',t:'select',opts:[['Ліва','Ліва (L)'],['Права','Права (R)']],when:v=>v.type==='Годування' && v.feed==='Груди'},
              {k:'date',l:'Коли',t:'date',req:1}, {k:'from',l:'Початок',t:'time',half:1}, {k:'to',l:'Кінець',t:'time',half:1},
-             {k:'amount',l:'Скільки',t:'text',ph:'120 мл, 15 хв, 2 ложечки',when:v=>v.type!=='Сон'}, {k:'note',l:'Кілька слів',t:'textarea',ph:'Перший кабачок — сподобався'} ],
-    card:e=>({ tag:e.type==='Сон' ? (e.kind?`${e.kind} сон`:'Сон') : 'Годування',
-               ttl: e.type==='Сон' ? [e.from&&e.to?`${e.from}–${e.to}`:e.from, dur(e.from,e.to)].filter(Boolean).join(' · ') || 'Сон'
-                                   : [e.type, e.from&&e.to?`${e.from}–${e.to}`:'', e.amount].filter(Boolean).join(' · '), txt:e.note, time:e.from }) },
+             {k:'amount',l:'Скільки',t:'text',ph:'Напр. 120 мл або 3 ложечки',when:v=>v.type==='Годування' && v.feed!=='Груди'},
+             {k:'note',l:'Кілька слів',t:'textarea',ph:'Перший кабачок — сподобався'} ],
+    card:e=>{ e = normCare(e); const time = e.from&&e.to ? `${e.from}–${e.to}` : (e.from||'');
+      if(e.type==='Сон') return { tag:e.kind?`${e.kind} сон`:'Сон', ttl:[time, dur(e.from,e.to)].filter(Boolean).join(' · ') || 'Сон', txt:e.note, time:e.from };
+      return { tag:'Годування', ttl:[feedLabel(e), time, e.feed==='Груди' ? (dur(e.from,e.to)||e.amount) : e.amount].filter(Boolean).join(' · '), txt:e.note, time:e.from }; } },
   photos:{ title:'Фото', label:'Фото', icon:'image', tone:'rose',
     lead:'Фото й одне речення. Цього достатньо, щоб спогад залишився.',
     fields:[ {k:'photo',l:'Фото',t:'photo',req:1}, {k:'date',l:'Коли',t:'date',req:1}, {k:'note',l:'Кілька слів',t:'textarea'} ],
@@ -651,11 +654,23 @@ const BLOCKS = {
     fields:[ {k:'word',l:'Що сказав малюк',t:'text',req:1,ph:'дай'}, {k:'meaning',l:'Що це означає',t:'text'}, {k:'date',l:'Коли',t:'date',req:1}, {k:'note',l:'Як це було',t:'textarea'} ],
     card:e=>({ word:e.word, ttl:e.meaning, txt:e.note }) }
 };
+/* Старі записи (Грудне, Суміш, Прикорм, Вода) → нова схема «Годування» */
+const LEGACY_FEED = { 'Грудне':'Груди', 'Суміш':'Пляшечка', 'Прикорм':'Їжа', 'Вода':'Пляшечка' };
+function normCare(e){
+  if(LEGACY_FEED[e.type]) return { ...e, type:'Годування', feed:LEGACY_FEED[e.type], amount: e.type==='Вода' ? ['Вода', e.amount].filter(Boolean).join(' ') : e.amount };
+  return e;
+}
+const sideLabel = s => s==='Права' ? 'R (права)' : s==='Ліва' ? 'L (ліва)' : '';
+function feedLabel(e){
+  if(e.feed==='Груди') return ['Груди', e.side==='Права' ? 'R' : e.side==='Ліва' ? 'L' : ''].filter(Boolean).join(' ');
+  return e.feed==='Їжа' ? 'Їжа' : e.feed || 'Годування';
+}
 function dur(a, b){
   if(!a||!b) return '';
   const [h1,m1]=a.split(':').map(Number), [h2,m2]=b.split(':').map(Number);
   let m = (h2*60+m2)-(h1*60+m1); if(m<0) m+=1440;
-  return `${Math.floor(m/60)} год ${m%60} хв`;
+  if(m===0) return 'менше хвилини';
+  const h = Math.floor(m/60); return h ? `${h} год ${m%60} хв` : `${m} хв`;
 }
 const NAV = [
   {k:'overview', title:'Огляд', icon:'home', tone:'rose'},
@@ -759,7 +774,7 @@ async function startDemo(){
       health:[ E({type:'Щеплення',title:'Гепатит B',date:s(-225),doctor:'Пологовий будинок'}), E({type:'Щеплення',title:'Перше щеплення',date:s(-12),note:'Трохи поплакала й заснула на руках.'}),
                E({type:'Температура',date:s(-30),temp:'38.2',note:'Після зубчика. Наступного дня минулося.'}), E({type:'Візит до лікаря',title:'Огляд педіатра',date:s(21),doctor:'Др. Коваль'}) ],
       growth:[ E({date:s(-226),weight:'3.2',height:'50',head:'34'}), E({date:s(-170),weight:'5.1',height:'57'}), E({date:s(-110),weight:'6.4',height:'62'}), E({date:s(-50),weight:'7.3',height:'66',head:'42'}), E({date:s(-5),weight:'7.9',height:'68'}) ],
-      care:[ E({type:'Прикорм',date:s(-40),amount:'2 ложечки',note:'Перший кабачок — сподобався.'}), E({type:'Сон',kind:'Нічний',date:s(-1),from:'21:15',to:'06:40'}), E({type:'Сон',kind:'Денний',date:s(-1),from:'12:30',to:'14:05'}), E({type:'Грудне',date:s(0),from:'03:10',to:'03:25',amount:'15 хв'}) ],
+      care:[ E({type:'Годування',feed:'Їжа',date:s(-40),amount:'2 ложечки',note:'Перший кабачок — сподобався.'}), E({type:'Сон',kind:'Нічний',date:s(-1),from:'21:15',to:'06:40'}), E({type:'Сон',kind:'Денний',date:s(-1),from:'12:30',to:'14:05'}), E({type:'Годування',feed:'Груди',side:'Ліва',date:s(0),from:'03:10',to:'03:25',amount:'15 хв'}), E({type:'Годування',feed:'Пляшечка',date:s(0),from:'07:30',amount:'120 мл суміші'}) ],
       photos:[], words:[ E({word:'дай',meaning:'хочу оце',date:s(-3),note:'Показувала на тата й на печиво.'}) ]
     }});
   }
@@ -779,11 +794,11 @@ function elapsed(ms){
   const s = Math.max(0, Math.floor(ms/1000)), h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
   return (h ? h+':'+String(m).padStart(2,'0') : String(m)) + ':' + String(x).padStart(2,'0');
 }
-const timerLabel = T => T.type==='Сон' ? `${T.kind||'Денний'} сон` : T.type==='Грудне' ? 'Годування груддю' : T.type;
+const timerLabel = T => T.type==='Сон' ? `${T.kind||'Денний'} сон` : (T.type==='Груди' || T.type==='Грудне') ? ['Груди', sideLabel(T.kind)].filter(Boolean).join(' ') : T.type;
 async function startTimer(type, kind){
   const c = child(); if(!c) return;
   if(data.timers[c.id]){ toast('Таймер уже йде. Спершу натисніть «Пауза».'); return; }
-  const T = { type, kind: type==='Сон' ? (kind || defaultKind()) : '', start: Date.now() };
+  const T = { type, kind: type==='Сон' ? (kind || defaultKind()) : (kind || ''), start: Date.now() };
   try{ await API.setTimer(c.id, T); }catch(e){ toast(errText(e)); return; }
   data.timers[c.id] = T; closeModal(); renderApp(); toast('Час пішов. Натисніть «Пауза», коли закінчите.');
 }
@@ -792,13 +807,14 @@ async function stopTimer(btn){
   const end = Date.now(), min = Math.max(1, Math.round((end-T.start)/60000));
   try{
     const saved = await busy(btn, async ()=>{
-      const e = await API.saveEntry('care', { childId:c.id, type:T.type, kind:T.kind||'', date:iso(new Date(T.start)),
-        from:hhmm(T.start), to:hhmm(end), amount: T.type==='Грудне' ? `${min} хв` : '', note:'' });
+      const sleep = T.type==='Сон';
+      const e = await API.saveEntry('care', { childId:c.id, date:iso(new Date(T.start)), from:hhmm(T.start), to:hhmm(end), note:'',
+        ...(sleep ? { type:'Сон', kind:T.kind||defaultKind(new Date(T.start)) } : { type:'Годування', feed:'Груди', side:T.kind||'', amount:`${min} хв` }) });
       await API.setTimer(c.id, null); return e;
     });
     (data.entries.care = data.entries.care || []).push(saved);
     delete data.timers[c.id];
-    renderApp(); toast(`Збережено: ${timerLabel(T).toLowerCase()} ${hhmm(T.start)}–${hhmm(end)}.`);
+    renderApp(); const L = timerLabel(T); toast(`Збережено: ${L.charAt(0).toLowerCase()+L.slice(1)} ${hhmm(T.start)}–${hhmm(end)}.`);
   }catch(e){ toast(errText(e)); }
 }
 async function cancelTimer(){
@@ -809,7 +825,7 @@ async function cancelTimer(){
 function timerHTML(){
   const T = timerOf(); if(!T) return '';
   return `<div class="timer" role="timer" aria-live="off">
-    <span class="sw" style="${toneVars('rose')}">${ic(T.type==='Сон'?'moon':'bottle')}</span>
+    <span class="sw" style="${toneVars('rose')}">${ic(T.type==='Сон'?'moon':'heart')}</span>
     <span class="tb"><small><span class="run"></span>${esc(timerLabel(T))}</small><span><b data-elapsed="${T.start}">${elapsed(Date.now()-T.start)}</b> <span class="since">з ${hhmm(T.start)}</span></span></span>
     <button class="icon-btn" data-timer-cancel aria-label="Скасувати таймер">${ic('x')}</button>
     <button class="btn primary" data-timer-stop>${ic('pause')} Пауза</button>
@@ -950,7 +966,8 @@ function viewBlock(b){
     const busy = !!timerOf();
     const st = (type, kind, label, icon) => `<button class="btn soft" data-start="${type}|${kind}" ${busy?'disabled style="opacity:.5"':''}>${ic(icon)} ${label}</button>`;
     extra = `<div class="starts"><p>${busy ? 'Таймер уже йде — він унизу екрана.' : 'Почати таймер: натисніть, і час піде сам.'}</p>
-      ${st('Сон','Денний','Денний сон','moon')}${st('Сон','Нічний','Нічний сон','moon')}${st('Грудне','','Годування груддю','bottle')}</div>`;
+      ${st('Сон','Денний','Денний сон','moon')}${st('Сон','Нічний','Нічний сон','moon')}
+      ${st('Груди','Ліва','Груди · L','heart')}${st('Груди','Права','Груди · R','heart')}</div>`;
   }
   if(b==='growth'){
     const pts = k => items.filter(e=>e[k]).map(e=>({d:e.date, v:parseFloat(e[k])})).reverse();
@@ -1085,7 +1102,7 @@ function fieldHTML(f, val){
       <input type="hidden" name="${f.k}" value="${val?'__keep':''}"></div></div>`;
   let inp;
   if(f.t==='textarea') inp = `<textarea id="${id}" name="${f.k}" placeholder="${esc(f.ph||'')}">${v}</textarea>`;
-  else if(f.t==='select') inp = `<select id="${id}" name="${f.k}">${f.opts.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  else if(f.t==='select') inp = `<select id="${id}" name="${f.k}">${f.opts.map(o=>{ const [ov, ol] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(ov)}" ${ov===val?'selected':''}>${esc(ol)}</option>`; }).join('')}</select>`;
   else inp = `<input id="${id}" name="${f.k}" type="${f.t}" ${f.step?`step="${f.step}" inputmode="decimal"`:''} value="${v}" placeholder="${esc(f.ph||'')}" ${f.suggest?`list="dl-${f.k}"`:''}>${f.suggest?`<datalist id="dl-${f.k}">${f.suggest.map(s=>`<option value="${esc(s)}">`).join('')}</datalist>`:''}`;
   return `<div class="field" data-f="${f.k}"><label for="${id}">${f.l}</label>${inp}</div>`;
 }
@@ -1095,10 +1112,11 @@ function fieldsHTML(fields, v){
   fields.forEach(f=>{ if(f.half){ buf.push(fieldHTML(f, v[f.k])); if(buf.length===2) flush(); } else { flush(); out += fieldHTML(f, v[f.k]); } });
   flush(); return out;
 }
-function wireWhen(form, fields){
+function wireWhen(form, fields, onSync){
   const sync = () => {
     const v = {}; fields.forEach(f=>{ if(form.elements[f.k]) v[f.k] = form.elements[f.k].value; });
     fields.filter(f=>f.when).forEach(f=>form.querySelector(`[data-f="${f.k}"]`)?.classList.toggle('hidden', !f.when(v)));
+    if(onSync) onSync(v);
   };
   form.addEventListener('change', sync); sync();
 }
@@ -1189,16 +1207,18 @@ function openPicker(){
 
 function openEntry(b, id, preset){
   const B = BLOCKS[b], prev = id ? (data.entries[b]||[]).find(e=>e.id===id) : null;
-  const v = { ...(preset||{}), ...(prev||{}) }, photos = {};
-  if(b==='care' && !v.kind) v.kind = defaultKind();
+  let v = { ...(preset||{}), ...(prev||{}) }; const photos = {};
+  if(b==='care'){ v = normCare(v); if(!v.kind) v.kind = defaultKind(); }
   const canTime = b==='care' && !prev && !timerOf();
   const w = openModal(`<h3 style="${toneVars(B.tone)}"><span class="sw">${ic(B.icon)}</span>${prev?WORDS(b).edit:B.title}</h3>
     <form id="ef" novalidate>${fieldsHTML(B.fields, v)}<div class="err" id="ef-err" role="alert"></div>
     <div class="actions">${prev?`<button type="button" class="btn danger" data-del>Видалити</button>`:''}${canTime?`<button type="button" class="btn soft" data-form-start>${ic('play')} Почати таймер</button>`:''}<span class="sp"></span>
     <button type="button" class="btn ghost" data-cancel>Пізніше</button><button class="btn primary" type="submit">Зберегти</button></div></form>`);
   wirePhotos(w, photos);
-  wireWhen(w.querySelector('#ef'), B.fields);
-  w.querySelector('[data-form-start]')?.addEventListener('click', ()=>{ const f = w.querySelector('#ef').elements; startTimer(f.type.value, f.kind.value); });
+  const tb = w.querySelector('[data-form-start]');
+  wireWhen(w.querySelector('#ef'), B.fields, v => { if(tb) tb.classList.toggle('hidden', !(v.type==='Сон' || (v.type==='Годування' && v.feed==='Груди'))); });
+  tb?.addEventListener('click', ()=>{ const f = w.querySelector('#ef').elements;
+    if(f.type.value==='Сон') startTimer('Сон', f.kind.value); else startTimer('Груди', f.side.value); });
   w.querySelector('[data-cancel]').onclick = closeModal;
   w.querySelector('[data-del]')?.addEventListener('click', async ()=>{
     if(!await ask(WORDS(b).del)) return;
