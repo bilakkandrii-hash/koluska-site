@@ -11,6 +11,7 @@
 <!-- Supabase (хмара) і JSZip (експорт). Версії зафіксовані. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="config.js"></script>
 <style>
 /* ===== Koluska brand tokens (Брендбук v1.0) ===== */
 :root{
@@ -313,14 +314,15 @@ const Store = {
 
 /* =========================================================
    НАЛАШТУВАННЯ ХМАРИ
-   Вставте сюди Project URL і anon (publishable) key з Supabase:
+   Project URL і anon (publishable) key з Supabase краще тримати у файлі config.js
+   (поруч з index.html), тоді оновлення index.html їх не зітре:
    Project Settings → API. Обидва ключі публічні — їх можна тримати в коді.
    Поки поля порожні, сайт працює в демо-режимі (дані лише в браузері).
    ========================================================= */
-const CONFIG = {
-  SUPABASE_URL: 'https://dadwcztjfpjbwqkdvidq.supabase.co/',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhZHdjenRqZnBqYndxa2R2aWRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5ODI0NzgsImV4cCI6MjEwNzU1ODQ3OH0.aY_i2lNnxeI0iEcHr_dMXRZaJYReEvH0RrSF6ZQ5xuE'
-};
+const CONFIG = Object.assign({
+  SUPABASE_URL: 'https://dadwcztjfpjbwqkdvidq.supabase.co/',      // або впишіть сюди (старий спосіб),
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhZHdjenRqZnBqYndxa2R2aWRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5ODI0NzgsImV4cCI6MjEwNzU1ODQ3OH0.aY_i2lNnxeI0iEcHr_dMXRZaJYReEvH0RrSF6ZQ5xuE'  // або в окремий файл config.js (рекомендовано)
+}, window.KOLUSKA_CONFIG || {});
 const CLOUD = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && window.supabase);
 const sb = CLOUD ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
 const NET = 'Не вдалося зберегти. Перевірте інтернет — ми нічого не загубили.';
@@ -345,8 +347,10 @@ function validateSignUp(f){
   if(!/^\S+@\S+\.\S+$/.test(email)) throw ['email','Перевірте email.'];
   if(!phone) throw ['phone','Перевірте номер телефону, напр. +380 67 123 45 67.'];
   if(f.pass.length < 6) throw ['pass','Пароль — щонайменше 6 символів.'];
-  if(!f.terms) throw ['terms','Погодьтеся з умовами, щоб продовжити.'];
-  return { name:f.name.trim(), email, phone, pass:f.pass, news:!!f.news, termsAt:new Date().toISOString() };
+  if(!f.terms) throw ['terms','Погодьтеся з умовами використання й політикою конфіденційності, щоб продовжити.'];
+  if(!f.health) throw ['health','Потрібна згода на обробку даних про здоров’я дитини: без неї розділ «Здоров’я» не працюватиме.'];
+  const now = new Date().toISOString();
+  return { name:f.name.trim(), email, phone, pass:f.pass, news:!!f.news, termsAt:now, healthAt:now };
 }
 
 /* ---------- Режим 1: демо (localStorage) ---------- */
@@ -355,7 +359,7 @@ const Local = {
     const users = Store.get('users', {});
     if(users[v.email]) throw ['email','Цей email уже з нами. Увійдіть.'];
     const salt = uid();
-    users[v.email] = { name:v.name, phone:v.phone, news:v.news, termsAt:v.termsAt, salt, hash: await sha(salt+v.pass) };
+    users[v.email] = { name:v.name, phone:v.phone, news:v.news, termsAt:v.termsAt, healthAt:v.healthAt, salt, hash: await sha(salt+v.pass) };
     Store.set('users', users); Store.set('session', v.email);
     return { needsConfirm:false };
   },
@@ -420,7 +424,7 @@ const rowToEntry = r => ({ ...(r.payload||{}), id:r.id, childId:r.child_id, date
 const Cloud = {
   async signUp(v){
     const { data:r, error } = await sb.auth.signUp({ email:v.email, password:v.pass, options:{
-      data:{ name:v.name, phone:v.phone, news:v.news, terms_at:v.termsAt }, emailRedirectTo: location.origin + location.pathname } });
+      data:{ name:v.name, phone:v.phone, news:v.news, terms_at:v.termsAt, health_consent_at:v.healthAt }, emailRedirectTo: location.origin + location.pathname } });
     if(error) throw authErr(error);
     if(r.user && Array.isArray(r.user.identities) && r.user.identities.length===0) throw ['email','Цей email уже з нами. Увійдіть.'];
     return { needsConfirm: !r.session };
@@ -518,9 +522,10 @@ function normPhone(p){
 const fmtPhone = p => { const m = /^\+380(\d{2})(\d{3})(\d{2})(\d{2})$/.exec(p||''); return m ? `+380 ${m[1]} ${m[2]} ${m[3]} ${m[4]}` : (p||''); };
 
 /* ---------- Тексти й контакти — замініть на свої ---------- */
+/* Тексти документів лежать у файлах privacy.html та terms.html поруч із сайтом */
 const LEGAL = {
-  privacy:{ title:'Політика конфіденційності', text:'Текст політики конфіденційності буде тут.\n\nЗамініть цей текст у константі LEGAL.privacy у коді.' },
-  terms:{ title:'Умови використання', text:'Текст умов використання буде тут.\n\nЗамініть цей текст у константі LEGAL.terms у коді.' }
+  privacy:{ title:'Політика конфіденційності', url:'privacy.html' },
+  terms:{ title:'Умови використання', url:'terms.html' }
 };
 const CONTACTS = {
   email:'hello@koluska.app',
@@ -684,7 +689,7 @@ const toneVars = t => { const x = TONE[t]||TONE.rose; return `--soft:${x.soft};-
 
 /* ---------- State ---------- */
 let user = null, data = null, view = 'overview', authTab = 'login';
-const draft = { name:'', email:'', phone:'', terms:false, news:false }; // зберігає введене при перемиканні вкладок і помилках
+const draft = { name:'', email:'', phone:'', terms:false, health:false, news:false }; // зберігає введене при перемиканні вкладок і помилках
 let collapsed = Store.get('collapsed', false);
 let activeId = null, authInfo = '';
 const setActive = id => { activeId = id; Store.set('active:'+user.id, id); };
@@ -723,10 +728,12 @@ function renderAuth(){
         <div class="field"><label for="a-pass">Пароль</label><input id="a-pass" name="pass" required type="password" autocomplete="${reg?'new-password':'current-password'}" placeholder="${reg?'Щонайменше 6 символів':''}"></div>
         ${!reg?`<div style="margin:-6px 0 10px;text-align:right"><button type="button" class="link" data-forgot>Забули пароль?</button></div>`:''}
         ${reg?`<label class="check"><input type="checkbox" name="terms" ${draft.terms?'checked':''}><span>Погоджуюся з <button type="button" class="link" data-legal="terms">умовами використання</button> та <button type="button" class="link" data-legal="privacy">політикою конфіденційності</button></span></label>
+        <label class="check"><input type="checkbox" name="health" ${draft.health?'checked':''}><span>Даю згоду на обробку даних про здоров’я моєї дитини (щеплення, візити до лікаря, температура, ліки), які я вноситиму в щоденник, як описано в <button type="button" class="link" data-legal="privacy">політиці конфіденційності</button></span></label>
         <label class="check"><input type="checkbox" name="news" ${draft.news?'checked':''}><span>Хочу отримувати поради й новини Koluska</span></label>`:''}
         <div class="err" id="a-err" role="alert"></div>
         <button class="btn primary block" type="submit">${reg?'Почати безкоштовно':'Увійти'}</button>
       </form>
+      <p class="note"><button type="button" class="link" data-legal="terms">Умови використання</button> · <button type="button" class="link" data-legal="privacy">Політика конфіденційності</button></p>
       ${CLOUD ? '' : `<button class="btn ghost block" data-demo style="margin-top:6px">Подивитися демо</button>
       <p class="note">Демо-режим: акаунти й записи зберігаються лише в цьому браузері.</p>`}
     </div>
@@ -746,7 +753,7 @@ function renderAuth(){
       if(reg){
         const v = validateSignUp({ ...draft, pass:form.elements.pass.value });
         const r = await busy(btn, ()=>API.signUp(v));
-        Object.assign(draft, { name:'', phone:'', terms:false, news:false });
+        Object.assign(draft, { name:'', phone:'', terms:false, health:false, news:false });
         if(r.needsConfirm){ authInfo = `Ми надіслали лист на ${v.email}. Підтвердіть пошту — і входьте.`; authTab = 'login'; draft.email = v.email; renderAuth(); return; }
       } else await busy(btn, ()=>API.signIn(form.elements.email.value, form.elements.pass.value));
       authInfo = ''; boot();
@@ -1159,13 +1166,9 @@ function ask(text, ok='Видалити'){
   });
 }
 function openLegal(k){
-  const L = LEGAL[k];
-  const w = document.createElement('div'); w.className='modal-wrap top';
-  w.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><h3>${esc(L.title)}</h3><div class="legal">${esc(L.text)}</div>
-    <div class="actions"><span class="sp"></span><button class="btn primary" data-x>Зрозуміло</button></div></div>`;
-  w.querySelector('[data-x]').onclick = e => { e.stopPropagation(); w.remove(); };
-  w.addEventListener('mousedown', e=>{ if(e.target===w) w.remove(); });
-  document.body.appendChild(w);
+  // посилання з target=_blank відкривається в новій вкладці, а введені дані форми не губляться
+  const a = document.createElement('a'); a.href = LEGAL[k].url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
 }
 function openContact(){
   const tg = CONTACTS.telegram.replace(/^https?:\/\/t\.me\//,'@'), ig = CONTACTS.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//,'@');
