@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="config.js"></script>
+<script src="vaccines.js"></script>
 <style>
 /* ===== Koluska brand tokens (Брендбук v1.0) ===== */
 :root{
@@ -289,6 +290,51 @@ nav.menu{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
   .content{padding:4px 16px 120px}
   .pick{grid-template-columns:1fr}
 }
+/* ---- Фото по місяцях ---- */
+.gal-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.gal-count{font-weight:700;color:var(--muted);margin-right:auto}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.slot{position:relative;aspect-ratio:4/5;border:1.5px solid var(--line);background:var(--raised);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0;overflow:hidden;cursor:pointer;color:var(--text)}
+.slot:hover{border-color:var(--rose)}
+.slot .plus{width:48px;height:48px;border-radius:50%;border:2px solid var(--sage);color:var(--sage-text);display:grid;place-items:center}
+.slot .cap{font-weight:800;font-size:14px;line-height:18px;text-align:center;padding:0 8px}
+.slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.slot.filled .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 8px 10px;color:#fff;background:linear-gradient(to top,rgba(59,43,47,.78),transparent)}
+.slot.now{border-color:var(--rose);box-shadow:0 0 0 3px var(--rose-soft)}
+.slot.future,.slot:disabled{opacity:.45;cursor:default}
+.slot.future:hover{border-color:var(--line)}
+.progress{height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--rose);width:0;transition:width .2s}
+.result img,.result video,#gen>img{display:block;width:100%;max-height:62vh;object-fit:contain;border-radius:16px;background:var(--bg);margin:0 0 4px}
+/* ---- Календар щеплень ---- */
+.vx-top{background:var(--sage-soft);border-radius:28px;padding:20px 22px;margin-bottom:20px;border-left:6px solid var(--sage)}
+.vx-top-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.vx-top-head h2{margin:0;font-size:22px;line-height:30px;font-weight:800;flex:1;min-width:160px}
+.vx-top-head .sw{background:var(--raised)}
+.vx-line{margin:0 0 8px;font-size:16px;line-height:24px}
+.vx-sub{color:var(--muted);font-size:15px;line-height:22px}
+.vx-src{margin:8px 0 0;font-size:13px;line-height:19px;color:var(--muted)}
+.vx-src a,.vx-note a{color:var(--sage-text)}
+.vx-note{background:var(--sage-soft);border-radius:20px;padding:16px 18px;font-size:15px;line-height:23px;margin:0 0 16px}
+.vx-prog{display:grid;gap:8px;margin:0 0 16px;font-weight:700}
+.vx-prog .progress i{background:var(--sage)}
+.vx-stage{background:var(--raised);border-radius:24px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:14px}
+.vx-stage.now{box-shadow:0 0 0 2px var(--sage),var(--shadow)}
+.vx-stage.future{opacity:.82}
+.vx-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px}
+.vx-head h2{margin:0;font-size:20px;line-height:28px;font-weight:800}
+.vx-head small{color:var(--muted);font-size:14px;font-weight:600}
+.vx-badges{display:flex;gap:8px;align-items:center}
+.vx-count{font-weight:800;color:var(--muted);font-size:14px}
+.vx-snote{margin:4px 0 8px;color:var(--muted);font-size:14px;line-height:21px}
+.vx-item{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.vx-name{min-width:200px;flex:1}
+.vx-name b{display:block}
+.vx-name small{color:var(--muted);font-size:14px;line-height:20px}
+.vx-item .btn{min-height:44px;padding:0 18px}
+.vx-all{padding-top:8px;border-top:1px solid var(--line)}
+@media (max-width:600px){.gallery{grid-template-columns:repeat(3,1fr);gap:8px}.slot .cap{font-size:12px;line-height:15px}.slot .plus{width:40px;height:40px}.vx-top-head .btn{width:100%}}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -571,9 +617,9 @@ function readPhoto(file){
   return new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = () => { const img = new Image(); img.onload = () => {
-      const s = Math.min(1, 1000/Math.max(img.width, img.height));
+      const s = Math.min(1, 1280/Math.max(img.width, img.height));
       const c = document.createElement('canvas'); c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .78));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .8));
     }; img.onerror = rej; img.src = r.result; };
     r.onerror = rej; r.readAsDataURL(file);
   });
@@ -607,6 +653,7 @@ const ICONS = {
   bottle:'<path d="M9.5 3h5"/><path d="M10 3v3L8 9v11a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9l-2-3V3"/><path d="M8 13h8"/>',
   trash:'<path d="M4 7h16"/><path d="M10 3h4"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v5M14 11v5"/>',
   download:'<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
+  check:'<path d="m5 12 5 5 9-10"/>',
   chev:'<path d="m9 6 6 6-6 6"/>',
   mail:'<rect x="3" y="5" width="18" height="14" rx="4"/><path d="m4 7 8 6 8-6"/>',
   send:'<path d="M21 4 3 11l7 2 2 7z"/><path d="m10 13 4-4"/>',
@@ -653,7 +700,7 @@ const BLOCKS = {
   photos:{ title:'Фото', label:'Фото', icon:'image', tone:'rose',
     lead:'Фото й одне речення. Цього достатньо, щоб спогад залишився.',
     fields:[ {k:'photo',l:'Фото',t:'photo',req:1}, {k:'date',l:'Коли',t:'date',req:1}, {k:'note',l:'Кілька слів',t:'textarea'} ],
-    card:e=>({ txt:e.note }) },
+    card:e=>({ ttl:Number.isInteger(e.month) ? monthLabel(e.month) : '', txt:e.note }) },
   words:{ title:'Слова', label:'Слова', icon:'quote', tone:'rose',
     lead:'Перші слова й смішні вигадки. Щоб не забулися.',
     fields:[ {k:'word',l:'Що сказав малюк',t:'text',req:1,ph:'дай'}, {k:'meaning',l:'Що це означає',t:'text'}, {k:'date',l:'Коли',t:'date',req:1}, {k:'note',l:'Як це було',t:'textarea'} ],
@@ -843,7 +890,7 @@ setInterval(()=>document.querySelectorAll('[data-elapsed]').forEach(el=>{ el.tex
 /* ---------- App shell ---------- */
 function renderApp(){
   const c = child(), cur = NAV.find(n=>n.k===view) || NAV[0];
-  const title = view==='overview' && c ? `Щоденник ${esc(genitive(c.name))}` : esc(cur.title);
+  const title = view==='overview' && c ? `Щоденник ${esc(genitive(c.name))}` : view==='vaccines' ? 'Календар щеплень' : esc(cur.title);
   const canAdd = !!c;
   document.getElementById('root').innerHTML = `
   <div class="app ${collapsed?'collapsed':''}" id="app">
@@ -860,7 +907,7 @@ function renderApp(){
       : `<button class="child-card" data-add-child><span class="avatar">${ic('plus')}</span><span class="meta"><b>Додати малюка</b><small>і почати щоденник</small></span></button>`}
       <nav class="menu">
         ${NAV.map(n=> n.sep ? '<div class="sb-sep"></div>' :
-          `<button class="nav-item ${n.k===view?'on':''}" style="${toneVars(n.tone)}" data-nav="${n.k}" title="${esc(n.title)}">${ic(n.icon)}<span class="lbl">${esc(n.title)}</span>${n.dot?`<span class="dot" style="background:var(--dot)"></span>`:''}</button>`).join('')}
+          `<button class="nav-item ${n.k===view||(view==='vaccines'&&n.k==='health')?'on':''}" style="${toneVars(n.tone)}" data-nav="${n.k}" title="${esc(n.title)}">${ic(n.icon)}<span class="lbl">${esc(n.title)}</span>${n.dot?`<span class="dot" style="background:var(--dot)"></span>`:''}</button>`).join('')}
       </nav>
       <div class="sb-foot">
         <label class="lang" title="Мова">${ic('globe')}<select aria-label="Мова"><option>UA</option><option disabled>EN — скоро</option></select></label>
@@ -878,7 +925,7 @@ function renderApp(){
         ${view==='children' ? `<button class="btn soft" data-add-child>${ic('plus')} Малюк</button>`:''}
       </div>
       <div class="content">${renderView()}</div>
-      ${canAdd && view!=='trash' ? `<div class="fab-wrap">${timerHTML()}<button class="btn primary fab" data-main>${ic('plus')} ${WORDS(view).add}</button></div>` : ''}
+      ${canAdd && view!=='trash' && view!=='vaccines' ? `<div class="fab-wrap">${timerHTML()}<button class="btn primary fab" data-main>${ic('plus')} ${WORDS(view).add}</button></div>` : ''}
     </main>
   </div>`;
 }
@@ -898,6 +945,7 @@ function renderView(){
   if(view==='trash') return viewTrash();
   if(!child()) return emptyState('Почнімо з малюка', 'Ім’я та дата народження — і щоденник готовий.', `<button class="btn primary" data-add-child>Додати малюка</button>`);
   if(view==='overview') return viewOverview();
+  if(view==='vaccines') return viewVaccines();
   return viewBlock(view);
 }
 const emptyState = (h, p, btn) => `<div class="empty">${mark(56)}<h2>${h}</h2><p>${p}</p>${btn||''}</div>`;
@@ -939,6 +987,7 @@ function viewOverview(){
     </div>
     <span class="moon">${mark(88)}</span>
   </section>
+  ${vxOverviewCard()}
   <div class="stats">
     <div class="stat" style="--c:var(--bloom)"><small><i></i>Вага</small><b>${w?String(w.weight).replace('.',',')+' кг':'—'}</b></div>
     <div class="stat" style="--c:var(--bloom)"><small><i></i>Зріст</small><b>${h?String(h.height).replace('.',',')+' см':'—'}</b></div>
@@ -962,8 +1011,10 @@ function viewOverview(){
 }
 
 function viewBlock(b){
+  if(b==='photos') return viewPhotos();
   const B = BLOCKS[b], items = list(b);
   let extra = '';
+  if(b==='health') extra = vxHealthCard();
   if(b==='milestones'){
     const done = new Set(items.map(e=>e.title));
     const next = FIRSTS.filter(m=>!done.has(m));
@@ -1208,12 +1259,12 @@ function openPicker(){
   <div class="actions"><span class="sp"></span><button class="btn ghost" data-cancel>Пізніше</button></div>`).querySelector('[data-cancel]').onclick = closeModal;
 }
 
-function openEntry(b, id, preset){
+function openEntry(b, id, preset, extra){
   const B = BLOCKS[b], prev = id ? (data.entries[b]||[]).find(e=>e.id===id) : null;
   let v = { ...(preset||{}), ...(prev||{}) }; const photos = {};
   if(b==='care'){ v = normCare(v); if(!v.kind) v.kind = defaultKind(); }
   const canTime = b==='care' && !prev && !timerOf();
-  const w = openModal(`<h3 style="${toneVars(B.tone)}"><span class="sw">${ic(B.icon)}</span>${prev?WORDS(b).edit:B.title}</h3>
+  const w = openModal(`<h3 style="${toneVars(B.tone)}"><span class="sw">${ic(B.icon)}</span>${(prev&&Number.isInteger(prev.month)) ? monthLabel(prev.month) : (extra&&Number.isInteger(extra.month)) ? monthLabel(extra.month) : prev?WORDS(b).edit:B.title}</h3>
     <form id="ef" novalidate>${fieldsHTML(B.fields, v)}<div class="err" id="ef-err" role="alert"></div>
     <div class="actions">${prev?`<button type="button" class="btn danger" data-del>Видалити</button>`:''}${canTime?`<button type="button" class="btn soft" data-form-start>${ic('play')} Почати таймер</button>`:''}<span class="sp"></span>
     <button type="button" class="btn ghost" data-cancel>Пізніше</button><button class="btn primary" type="submit">Зберегти</button></div></form>`);
@@ -1234,7 +1285,7 @@ function openEntry(b, id, preset){
       const vals = collect(ev.target, B.fields, photos, prev);
       const saved = await busy(ev.submitter, async ()=>{
         for(const f of B.fields) if(f.t==='photo' && vals[f.k] && vals[f.k].startsWith('data:')) vals[f.k] = await API.uploadPhoto(vals[f.k]);
-        return API.saveEntry(b, { ...(prev||{}), ...vals, id:prev?.id, childId:prev?.childId || child().id });
+        return API.saveEntry(b, { ...(prev||{}), ...(extra||{}), ...vals, id:prev?.id, childId:prev?.childId || child().id });
       });
       data.entries[b] = (data.entries[b] || []).filter(e=>e.id!==saved.id).concat(saved);
       closeModal(); renderApp(); toast(WORDS(b).saved);
@@ -1272,6 +1323,329 @@ function openChild(id){
   };
 }
 
+/* =====================================================================
+   Фото по місяцях, колаж для Instagram і відео
+   ===================================================================== */
+const MAX_MONTH = 36;
+let photoTab = 'months';
+function monthLabel(m){ return m===0 ? 'Щойно народжений' : `${m} ${plural(m,'місяць','місяці','місяців')}`; }
+function monthShort(m){ return m===0 ? 'Нар.' : `${m} міс`; }
+function childMonths(){ const a = ageParts(child().birth); return a ? a.y*12 + a.m : -1; }
+function addMonthsISO(birth, n){
+  const [y, mo, d] = birth.split('-').map(Number);
+  const t = new Date(y, mo-1+n, 1), last = new Date(t.getFullYear(), t.getMonth()+1, 0).getDate();
+  t.setDate(Math.min(d, last)); return iso(t);
+}
+function slotDate(m){ const d = addMonthsISO(child().birth, m), t = today(); return d > t ? t : d; }
+function monthPhotos(){
+  const map = new Map();
+  list('photos').forEach(e=>{ if(Number.isInteger(e.month) && !map.has(e.month)) map.set(e.month, e); });
+  return map;
+}
+const monthSlotsList = () => [...monthPhotos().entries()].sort((a,b)=>a[0]-b[0]).map(([m,e])=>({m,e}));
+
+function viewPhotos(){
+  const B = BLOCKS.photos, items = list('photos'), map = monthPhotos(), cur = childMonths();
+  const head = `<div class="section-head" style="${toneVars(B.tone)}"><span class="sw" style="background:var(--raised)">${ic(B.icon)}</span><p>${esc(B.lead)}</p></div>`;
+  const tabs = `<div class="seg" style="margin-bottom:16px;width:max-content;max-width:100%"><button class="${photoTab==='months'?'on':''}" data-ptab="months">По місяцях</button><button class="${photoTab==='all'?'on':''}" data-ptab="all">Усі фото</button></div>`;
+  if(photoTab==='all'){
+    return head + tabs + (items.length ? `<div class="cards">${items.map(e=>cardHTML('photos',e)).join('')}</div>`
+      : emptyState(WORDS('photos').empty, WORDS('photos').emptyP, `<button class="btn primary" data-add="photos">${WORDS('photos').add}</button>`));
+  }
+  const filled = map.size, total = MAX_MONTH + 1;
+  let grid = '';
+  for(let m=0; m<=MAX_MONTH; m++){
+    const e = map.get(m), future = m > cur;
+    grid += `<button class="slot ${e?'filled':''} ${future?'future':''} ${m===cur?'now':''}" data-slot="${m}" ${future?'disabled':''} aria-label="${monthLabel(m)}${e?'':': додати фото'}">
+      ${e && API.photoUrl(e.photo) ? `<img src="${P(e.photo)}" alt="" loading="lazy">` : (e ? '' : `<span class="plus">${ic('plus')}</span>`)}
+      <span class="cap">${monthLabel(m)}</span></button>`;
+  }
+  return head + tabs + `
+    <div class="gal-actions">
+      <span class="gal-count"><b>${filled}</b> з ${total}</span>
+      <button class="btn soft" data-collage ${filled<1?'disabled style="opacity:.5"':''}>${ic('image')} Колаж для Instagram</button>
+      <button class="btn soft" data-video ${filled<2?'disabled style="opacity:.5"':''}>${ic('play')} Відео</button>
+    </div>
+    ${filled<2 ? '<p class="quiet" style="margin:-4px 0 14px">Додайте щонайменше два фото, і з’явиться можливість створити відео. Колаж можна зробити вже з одного.</p>' : ''}
+    <div class="gallery">${grid}</div>`;
+}
+function openSlot(m){
+  const e = monthPhotos().get(m);
+  if(e) openEntry('photos', e.id);
+  else openEntry('photos', null, { date: slotDate(m) }, { month: m });
+}
+
+/* ---- малювання ---- */
+const FONTS_READY = () => Promise.all([
+  document.fonts.load('italic 500 48px Lora'), document.fonts.load('600 48px Lora'),
+  document.fonts.load('800 32px Nunito'), document.fonts.load('700 32px Nunito')]).catch(()=>{});
+function rrPath(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function drawCover(g, img, x, y, w, h, r, zoom=1){
+  const s = Math.max(w/img.width, h/img.height) * zoom, sw = w/s, sh = h/s;
+  g.save(); rrPath(g,x,y,w,h,r); g.clip();
+  g.drawImage(img, (img.width-sw)/2, (img.height-sh)/2, sw, sh, x, y, w, h); g.restore();
+}
+const MARK_PATH = typeof Path2D !== 'undefined' ? new Path2D('M5.27 11A20 20 0 1 0 42.73 11A20 20 0 0 1 5.27 11Z') : null;
+function drawMark(g, cx, y, w){ // cx — центр по горизонталі, y — верх
+  if(!MARK_PATH) return; const s = w/40, x = cx - w/2;
+  g.save(); g.translate(x - 4*s, y - 9*s); g.scale(s, s);
+  g.fillStyle = '#E08A72'; g.fill(MARK_PATH);
+  g.fillStyle = '#E2AE4E'; g.beginPath(); g.arc(24, 16, 5.6, 0, Math.PI*2); g.fill(); g.restore();
+}
+async function loadBitmaps(slots, onStep){
+  const out = [];
+  for(const s of slots){ out.push(await createImageBitmap(await API.photoBlob(s.e.photo))); onStep && onStep(out.length/slots.length); }
+  return out;
+}
+
+async function renderCollage(slots, bmps, name){
+  const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#FBF6F0'; g.fillRect(0,0,W,H);
+  g.textAlign = 'center'; g.fillStyle = '#3B2B2F'; g.font = '600 72px Lora, Georgia, serif'; g.fillText(name, W/2, 104);
+  g.fillStyle = '#76605F'; g.font = '700 28px Nunito, sans-serif'; g.fillText('місяць за місяцем', W/2, 150);
+  const n = bmps.length, gap = 10, gx = 40, gy = 190, gw = W-2*gx, gh = H-gy-120;
+  let best = null;
+  for(let cols=1; cols<=9; cols++){
+    const rows = Math.ceil(n/cols), cw = (gw-(cols-1)*gap)/cols, ch = (gh-(rows-1)*gap)/rows;
+    const score = Math.abs(Math.log((cw/ch)/0.8)) + (cols*rows-n)*0.05;
+    if(!best || score < best.score) best = { cols, rows, cw, ch, score };
+  }
+  const { cols, rows, cw, ch } = best;
+  bmps.forEach((b, i)=>{
+    const r = Math.floor(i/cols), inRow = r===rows-1 ? n-(rows-1)*cols : cols;
+    const off = (cols-inRow)*(cw+gap)/2, x = gx + off + (i%cols)*(cw+gap), y = gy + r*(ch+gap);
+    drawCover(g, b, x, y, cw, ch, 12);
+    const fs = Math.max(16, Math.round(cw*0.15)), label = monthShort(slots[i].m);
+    g.font = `800 ${fs}px Nunito, sans-serif`; g.textAlign = 'left';
+    const tw = g.measureText(label).width, px = fs*0.45, ph = fs*1.5;
+    g.fillStyle = 'rgba(59,43,47,.72)'; rrPath(g, x+8, y+ch-ph-8, tw+px*2, ph, ph/2); g.fill();
+    g.fillStyle = '#FFFFFF'; g.fillText(label, x+8+px, y+ch-8-ph*0.3);
+  });
+  g.textAlign = 'center'; drawMark(g, W/2-110, H-90, 52);
+  g.fillStyle = '#3B2B2F'; g.font = '800 34px Nunito, sans-serif'; g.textAlign = 'left'; g.fillText('koluska.app', W/2-70, H-60);
+  return new Promise(res => c.toBlob(res, 'image/jpeg', .92));
+}
+
+function pickVideoMime(){
+  if(typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) return null;
+  return ['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t)) || null;
+}
+let genCancel = false;
+async function renderVideo(slots, bmps, o){
+  const mime = pickVideoMime(); if(!mime) throw 'Цей браузер не вміє створювати відео. Спробуйте Chrome або Safari, чи зробіть колаж.';
+  const W = o.w, H = o.h, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), M = Math.round(W*0.055), cardW = W-2*M, cardH = Math.round(H*0.74), cardY = Math.round(H*0.045);
+  const labelY = cardY+cardH+Math.round(H*0.085), nameY = labelY+Math.round(H*0.045), footY = H-Math.round(H*0.05);
+  // фото заздалегідь обрізаємо під картку й одразу звільняємо оригінали
+  const cards = bmps.map(b=>{ const k = document.createElement('canvas'); k.width = cardW; k.height = cardH; drawCover(k.getContext('2d'), b, 0, 0, cardW, cardH, 0); b.close && b.close(); return k; });
+  const FADE = 420, scenes = [{type:'intro', d:2000}, ...cards.map((_,i)=>({type:'photo', i, d:o.perMs})), {type:'outro', d:2200}];
+  let acc = 0; scenes.forEach(s=>{ s.t0 = acc; acc += s.d; }); const total = acc;
+  const bg = ()=>{ g.fillStyle = '#FBF6F0'; g.fillRect(0,0,W,H); };
+  function scene(s, u){
+    bg(); g.textAlign = 'center';
+    if(s.type==='intro'){
+      drawMark(g, W/2, H*0.30, W*0.30);
+      g.fillStyle = '#3B2B2F'; g.font = `600 ${Math.round(W*0.10)}px Lora, Georgia, serif`; g.fillText(o.name, W/2, H*0.30+W*0.30*0.75+W*0.16);
+      g.fillStyle = '#76605F'; g.font = `700 ${Math.round(W*0.036)}px Nunito, sans-serif`; g.fillText('місяць за місяцем', W/2, H*0.30+W*0.30*0.75+W*0.16+W*0.075);
+    } else if(s.type==='outro'){
+      drawMark(g, W/2, H*0.38, W*0.26);
+      g.fillStyle = '#3B2B2F'; g.font = `800 ${Math.round(W*0.075)}px Nunito, sans-serif`; g.fillText('koluska', W/2, H*0.38+W*0.26*0.75+W*0.13);
+      g.fillStyle = '#76605F'; g.font = `700 ${Math.round(W*0.032)}px Nunito, sans-serif`; g.fillText('Щоденник перших днів вашого малюка', W/2, H*0.38+W*0.26*0.75+W*0.20);
+    } else {
+      const z = 1 + 0.05*Math.min(1, u/s.d), k = cards[s.i];
+      g.save(); rrPath(g, M, cardY, cardW, cardH, Math.round(W*0.04)); g.clip();
+      g.drawImage(k, (cardW-cardW/z)/2, (cardH-cardH/z)/2, cardW/z, cardH/z, M, cardY, cardW, cardH); g.restore();
+      g.fillStyle = '#3B2B2F'; g.font = `italic 500 ${Math.round(W*0.062)}px Lora, Georgia, serif`; g.fillText(monthLabel(slots[s.i].m), W/2, labelY);
+      g.fillStyle = '#76605F'; g.font = `700 ${Math.round(W*0.03)}px Nunito, sans-serif`; g.fillText(o.name, W/2, nameY);
+      drawMark(g, W/2-W*0.1, footY-W*0.03, W*0.045);
+      g.fillStyle = '#3B2B2F'; g.font = `800 ${Math.round(W*0.03)}px Nunito, sans-serif`; g.textAlign = 'left'; g.fillText('koluska.app', W/2-W*0.065, footY); g.textAlign = 'center';
+    }
+  }
+  function frame(t){
+    let i = scenes.findIndex(s=>t < s.t0+s.d); if(i<0) i = scenes.length-1;
+    const s = scenes[i], u = t - s.t0;
+    if(i>0 && u < FADE){ scene(scenes[i-1], scenes[i-1].d); g.globalAlpha = u/FADE; scene(s, u); g.globalAlpha = 1; }
+    else scene(s, u);
+  }
+  genCancel = false; frame(0);
+  return new Promise((resolve, reject)=>{
+    const rec = new MediaRecorder(c.captureStream(30), { mimeType: mime, videoBitsPerSecond: 6000000 }), chunks = [];
+    rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+    rec.onerror = () => reject('Не вдалося записати відео. Спробуйте ще раз або зробіть колаж.');
+    rec.onstop = () => genCancel ? reject('cancelled') : resolve({ blob: new Blob(chunks, { type: mime.split(';')[0] }), ext: mime.includes('mp4') ? 'mp4' : 'webm' });
+    rec.start(500);
+    const t0 = performance.now();
+    (function loop(){
+      const t = performance.now() - t0;
+      if(genCancel){ rec.stop(); return; }
+      if(t >= total){ frame(total-1); setTimeout(()=>rec.stop(), 250); return; }
+      frame(t); o.onProgress && o.onProgress(t/total); requestAnimationFrame(loop);
+    })();
+  });
+}
+
+function saveBlob(blob, filename){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 20000);
+}
+async function shareBlob(blob, filename, title){
+  const f = new File([blob], filename, { type: blob.type });
+  if(navigator.canShare && navigator.canShare({ files:[f] })){ try{ await navigator.share({ files:[f], title }); return true; }catch(e){ if(e && e.name==='AbortError') return true; } }
+  saveBlob(blob, filename); return false;
+}
+function resultActions(w, blob, filename){
+  const canShare = (() => { try{ return !!(navigator.canShare && navigator.canShare({ files:[new File([blob], filename, { type: blob.type })] })); }catch(e){ return false; } })();
+  w.querySelector('.actions').innerHTML = `<span class="sp"></span><button class="btn ghost" data-cancel>Закрити</button>
+    ${canShare ? '<button class="btn soft" data-shareout>Поділитися</button>' : ''}<button class="btn primary" data-saveout>${ic('download')} Зберегти</button>`;
+  w.querySelector('[data-cancel]').onclick = closeModal;
+  w.querySelector('[data-saveout]').onclick = () => saveBlob(blob, filename);
+  w.querySelector('[data-shareout]')?.addEventListener('click', ()=>shareBlob(blob, filename, 'Koluska'));
+}
+
+async function openCollage(){
+  const slots = monthSlotsList(); if(!slots.length) return;
+  const w = openModal(`<h3>Колаж для Instagram</h3><div class="result" id="gen"><p class="quiet" id="gt">Готуємо колаж…</p><div class="progress"><i id="gp"></i></div></div><div class="actions"><span class="sp"></span><button class="btn ghost" data-cancel>Закрити</button></div>`);
+  w.querySelector('[data-cancel]').onclick = closeModal;
+  try{
+    await FONTS_READY();
+    const bmps = await loadBitmaps(slots, p => { const el = w.querySelector('#gp'); if(el) el.style.width = Math.round(p*100)+'%'; });
+    const blob = await renderCollage(slots, bmps, child().name); bmps.forEach(b=>b.close && b.close());
+    if(!document.body.contains(w)) return;
+    const url = URL.createObjectURL(blob);
+    w.querySelector('#gen').innerHTML = `<img src="${url}" alt="Колаж" id="collage-img">`;
+    resultActions(w, blob, `koluska-collage-${today()}.jpg`);
+  }catch(e){ if(document.body.contains(w)) w.querySelector('#gen').innerHTML = `<p class="err">Не вдалося створити колаж. Спробуйте ще раз.</p>`; console.error(e); }
+}
+
+function openVideo(){
+  const slots = monthSlotsList(); if(slots.length < 2) return;
+  const supported = !!pickVideoMime();
+  const w = openModal(`<h3>Відео зі щоденника</h3><div id="gen">
+    ${supported ? `<p style="margin:0 0 14px">Відео збереться на вашому пристрої з ${slots.length} ${plural(slots.length,'фото','фото','фото')}: від першого до останнього. Фото нікуди не завантажуються.</p>
+    <div class="row2">
+      <div class="field"><label for="vf-fmt">Формат</label><select id="vf-fmt"><option value="1080x1350">Стрічка 4:5</option><option value="1080x1920">Stories 9:16</option></select></div>
+      <div class="field"><label for="vf-spd">Швидкість</label><select id="vf-spd"><option value="1000">Швидко</option><option value="1600" selected>Звичайно</option><option value="2500">Повільно</option></select></div>
+    </div>
+    <p class="quiet" style="font-size:14px;line-height:20px;margin:0">Під час створення не згортайте сторінку. З ${slots.length} фото це займе приблизно ${Math.ceil((slots.length*1.6+4))} секунд.</p>`
+    : `<p class="err">Цей браузер не вміє створювати відео. Спробуйте Chrome або Safari, чи зробіть колаж.</p>`}
+    </div><div class="actions"><span class="sp"></span><button class="btn ghost" data-cancel>Закрити</button>${supported ? '<button class="btn primary" data-go>Створити відео</button>' : ''}</div>`);
+  w.querySelector('[data-cancel]').onclick = () => { genCancel = true; closeModal(); };
+  w.querySelector('[data-go]')?.addEventListener('click', async ()=>{
+    const [vw, vh] = w.querySelector('#vf-fmt').value.split('x').map(Number), perMs = Number(w.querySelector('#vf-spd').value);
+    w.querySelector('#gen').innerHTML = `<p class="quiet" id="gt">Готуємо фото…</p><div class="progress"><i id="gp"></i></div><p class="quiet" style="font-size:14px;margin:10px 0 0">Не згортайте сторінку.</p>`;
+    w.querySelector('.actions').innerHTML = `<span class="sp"></span><button class="btn ghost" data-cancel>Скасувати</button>`;
+    w.querySelector('[data-cancel]').onclick = () => { genCancel = true; closeModal(); };
+    const setP = (p, txt) => { const b = w.querySelector('#gp'), t = w.querySelector('#gt'); if(b) b.style.width = Math.round(p*100)+'%'; if(t && txt) t.textContent = txt; };
+    try{
+      await FONTS_READY();
+      const bmps = await loadBitmaps(slots, p => setP(p*0.25, 'Готуємо фото…'));
+      const { blob, ext } = await renderVideo(slots, bmps, { w:vw, h:vh, perMs, name:child().name, onProgress: p => setP(0.25+p*0.75, 'Створюємо відео…') });
+      if(!document.body.contains(w)) return;
+      const url = URL.createObjectURL(blob);
+      w.querySelector('#gen').innerHTML = `<div class="result"><video src="${url}" controls playsinline id="video-out"></video></div>`;
+      resultActions(w, blob, `koluska-video-${today()}.${ext}`);
+    }catch(e){
+      if(e === 'cancelled' || !document.body.contains(w)) return;
+      w.querySelector('#gen').innerHTML = `<p class="err">${esc(typeof e==='string' ? e : 'Не вдалося створити відео. Спробуйте ще раз або зробіть колаж.')}</p>`;
+      w.querySelector('.actions').innerHTML = `<span class="sp"></span><button class="btn ghost" data-cancel>Закрити</button>`; w.querySelector('[data-cancel]').onclick = closeModal; console.error(e);
+    }
+  });
+}
+
+/* =====================================================================
+   Календар щеплень (дані: vaccines.js, джерело: наказ МОЗ № 595)
+   ===================================================================== */
+const VX = () => window.KOLUSKA_VACCINES || null;
+function vxStages(){ const V = VX(); if(!V) return []; const girl = child().sex === 'Дівчинка'; return V.stages.filter(s => !s.girlsOnly || girl); }
+function vxDoneMap(){ const m = {}; list('health').forEach(e=>{ if(e.vaccineKey && !m[e.vaccineKey]) m[e.vaccineKey] = e; }); return m; }
+function vxFind(key){ const V = VX(); for(const s of V.stages) for(const i of s.items) if(i.key === key) return i; return null; }
+function vxStageDate(s){
+  if(s.months <= 0) return '';
+  const [y, mo] = child().birth.split('-').map(Number);
+  return new Date(y, mo-1+s.months, 1).toLocaleDateString('uk-UA', { month:'long', year:'numeric' }).replace(/\s*р\.$/, '');
+}
+function vxStatus(s, done){ const n = s.items.length, d = s.items.filter(i=>done[i.key]).length; return { n, d, all: d === n }; }
+function vxTotals(){ const done = vxDoneMap(), st = vxStages(); let n = 0, d = 0; st.forEach(s=>{ const x = vxStatus(s, done); n += x.n; d += x.d; }); return { n, d }; }
+const vxLink = (o, txt) => `<a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(txt || o.label)}</a>`;
+function vxNote(full){
+  const V = VX(), S = V.sources;
+  if(!full) return `<p class="vx-src">За Календарем профілактичних щеплень МОЗ України (${esc(V.edition)}). Джерело: ${vxLink(S.order,'наказ МОЗ № 595')}. Порадьтеся зі своїм лікарем.</p>`;
+  return `<div class="vx-note"><b>Звідки ці дані.</b> Це Календар профілактичних щеплень в Україні, затверджений наказом МОЗ України від 16.09.2011 № 595 (${esc(V.edition)}).
+    Офіційний текст: ${vxLink(S.order,'zakon.rada.gov.ua')}. Роз’яснення й візуалізація: ${vxLink(S.portal,'Національний портал з імунізації')}; новина МОЗ: ${vxLink(S.moz,'moz.gov.ua')}.
+    Дані в застосунку оновлено ${fmtDate(V.updated)}.<br><b>Календар не замінює консультацію лікаря.</b> Строки й схему для вашої дитини визначає лікар. Щеплення поза календарем обговоріть з лікарем (${vxLink(S.recommended,'про рекомендовані щеплення')}).</div>`;
+}
+
+function vxOverviewCard(){
+  const V = VX(); if(!V || !child()) return '';
+  const done = vxDoneMap(), m = childMonths(), st = vxStages();
+  const nowS = st.find(s => s.months === m && !vxStatus(s, done).all);
+  const next = st.find(s => s.months > m);
+  const behindN = st.filter(s => s.months < m).reduce((n, s) => n + s.items.filter(i=>!done[i.key]).length, 0);
+  let body = '';
+  const names = s => [...new Set(s.items.filter(i=>!done[i.key]).map(i=>i.name))].join(', ');
+  if(nowS) body += `<p class="vx-line"><b>Зараз за календарем: ${esc(nowS.label)}.</b> ${esc(names(nowS))}.</p>`;
+  else if(next) body += `<p class="vx-line"><b>Далі за календарем: ${esc(next.label)}</b>${vxStageDate(next) ? `, орієнтовно ${esc(vxStageDate(next))}` : ''}. ${esc(names(next))}.</p>`;
+  else body += `<p class="vx-line"><b>Календар для дітей пройдено.</b> Якщо виникають питання, звертайтеся до лікаря.</p>`;
+  if(nowS && next) body += `<p class="vx-line vx-sub">Далі: ${esc(next.label)}${vxStageDate(next) ? `, орієнтовно ${esc(vxStageDate(next))}` : ''}.</p>`;
+  if(behindN > 0) body += `<p class="vx-line vx-sub">У календарі ${behindN} ${plural(behindN,'пункт','пункти','пунктів')} без відмітки. Якщо щеплення вже зроблено, відмітьте його. Якщо ні, порадьтеся з лікарем.</p>`;
+  return `<section class="vx-top" style="${toneVars('sage')}">
+    <div class="vx-top-head"><span class="sw">${ic('heart')}</span><h2>Календар щеплень</h2><button class="btn primary" data-nav="vaccines">Відкрити календар</button></div>
+    ${body}${vxNote(false)}</section>`;
+}
+function vxHealthCard(){
+  const V = VX(); if(!V || !child()) return '';
+  const t = vxTotals();
+  return `<section class="vx-top" style="${toneVars('sage')};margin-bottom:16px">
+    <div class="vx-top-head"><span class="sw">${ic('heart')}</span><h2>Календар щеплень</h2><button class="btn primary" data-nav="vaccines">Відкрити календар</button></div>
+    <p class="vx-line">Відмічено ${t.d} з ${t.n} за Календарем МОЗ України. Відмічені щеплення потрапляють у цей розділ.</p>${vxNote(false)}</section>`;
+}
+function viewVaccines(){
+  const V = VX();
+  if(!V) return emptyState('Календар поки недоступний', 'Не знайдено файл vaccines.js. Завантажте його на сайт разом з index.html.');
+  const done = vxDoneMap(), m = childMonths(), st = vxStages(), t = vxTotals();
+  const stages = st.map(s=>{
+    const sd = vxStatus(s, done), isNow = s.months === m, future = s.months > m, when = s.months > 0 ? `орієнтовно ${vxStageDate(s)}` : '';
+    const undone = s.items.filter(i=>!done[i.key]).map(i=>i.key);
+    return `<section class="vx-stage ${future?'future':''} ${isNow?'now':''}">
+      <div class="vx-head"><div><h2>${esc(s.label)}</h2>${when ? `<small>${esc(when)}</small>` : ''}</div>
+        <div class="vx-badges">${isNow ? '<span class="label" style="--soft:var(--sage-soft);--lc:var(--sage-text)">Зараз</span>' : ''}<span class="vx-count">${sd.d} з ${sd.n}</span></div></div>
+      ${s.note ? `<p class="vx-snote">${esc(s.note)}</p>` : ''}
+      ${s.items.map(i=>{ const e = done[i.key]; return `<div class="vx-item"><div class="vx-name"><b>${esc(i.name)}</b><small>${esc(i.dose)}${i.note ? ' · '+esc(i.note) : ''}</small></div>
+        ${e ? `<button class="btn soft" data-vxedit="${e.id}">${ic('check')} ${fmtDate(e.date)}</button>` : `<button class="btn" data-vxmark="${esc(i.key)}">Відмітити</button>`}</div>`; }).join('')}
+      ${undone.length > 1 ? `<div class="vx-all"><button class="btn ghost" data-vxmark="${undone.join(',')}">Відмітити все одразу</button></div>` : ''}
+    </section>`;
+  }).join('');
+  return `<button class="btn ghost" data-nav="health" style="margin:-6px 0 6px;padding-left:4px">← До розділу «Здоров’я»</button>
+    ${vxNote(true)}
+    <div class="vx-prog"><span>Відмічено <b>${t.d}</b> з ${t.n}</span><div class="progress"><i style="width:${t.n ? Math.round(t.d/t.n*100) : 0}%"></i></div></div>
+    ${stages}
+    ${vxNote(false)}`;
+}
+const VX_FIELDS = [ {k:'date',l:'Дата щеплення',t:'date',req:1}, {k:'doctor',l:'Лікар чи клініка',t:'text'}, {k:'note',l:'Нотатки',t:'textarea',ph:'Реакція, серія вакцини…'} ];
+function openVaccine(keys){
+  const items = keys.map(vxFind).filter(Boolean); if(!items.length) return;
+  const w = openModal(`<h3 style="${toneVars('sage')}"><span class="sw">${ic('heart')}</span>Відмітити щеплення</h3>
+    <p style="margin:-6px 0 14px">${items.map(i=>`<b>${esc(i.name)}</b>, ${esc(i.dose)}`).join('<br>')}</p>
+    <form id="vf" novalidate>${fieldsHTML(VX_FIELDS, {})}<div class="err" id="vf-err" role="alert"></div>
+    <div class="actions"><span class="sp"></span><button type="button" class="btn ghost" data-cancel>Пізніше</button><button class="btn primary" type="submit">Зберегти</button></div></form>`);
+  w.querySelector('[data-cancel]').onclick = closeModal;
+  w.querySelector('#vf').onsubmit = async ev => {
+    ev.preventDefault();
+    try{
+      const v = collect(ev.target, VX_FIELDS, {}, null);
+      const saved = await busy(ev.submitter, async ()=>{
+        const out = [];
+        for(const i of items) out.push(await API.saveEntry('health', { childId:child().id, type:'Щеплення', title:`${i.name} (${i.dose})`, date:v.date, doctor:v.doctor, note:v.note, vaccineKey:i.key }));
+        return out;
+      });
+      saved.forEach(s=>{ data.entries.health = (data.entries.health||[]).filter(e=>e.id!==s.id).concat(s); });
+      closeModal(); renderApp(); toast('Збережено. Щеплення додано в розділ «Здоров’я».');
+    }catch(e){ w.querySelector('#vf-err').textContent = errText(e); }
+  };
+}
+
+
 /* ---------- Events ---------- */
 document.addEventListener('click', e=>{
   const t = e.target.closest('button,[data-close-menu]'); if(!t) return;
@@ -1283,6 +1657,12 @@ document.addEventListener('click', e=>{
   else if('openMenu' in d) app.classList.add('open');
   else if('closeMenu' in d) app.classList.remove('open');
   else if('main' in d){ BLOCKS[view] ? openEntry(view) : openPicker(); }
+  else if(d.ptab){ photoTab = d.ptab; renderApp(); }
+  else if('slot' in d) openSlot(Number(d.slot));
+  else if('collage' in d) openCollage();
+  else if('video' in d) openVideo();
+  else if(d.vxmark) openVaccine(d.vxmark.split(','));
+  else if(d.vxedit) openEntry('health', d.vxedit);
   else if(d.add) openEntry(d.add, null, d.preset ? { title:d.preset } : null);
   else if(d.edit){ const [b,id] = d.edit.split(':'); openEntry(b, id); }
   else if('addChild' in d) openChild();
