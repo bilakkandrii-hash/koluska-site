@@ -366,8 +366,8 @@ const Store = {
    Поки поля порожні, сайт працює в демо-режимі (дані лише в браузері).
    ========================================================= */
 const CONFIG = Object.assign({
-  SUPABASE_URL: 'https://dadwcztjfpjbwqkdvidq.supabase.co/',      // або впишіть сюди (старий спосіб),
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhZHdjenRqZnBqYndxa2R2aWRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5ODI0NzgsImV4cCI6MjEwNzU1ODQ3OH0.aY_i2lNnxeI0iEcHr_dMXRZaJYReEvH0RrSF6ZQ5xuE'  // або в окремий файл config.js (рекомендовано)
+  SUPABASE_URL: '',      // або впишіть сюди (старий спосіб),
+  SUPABASE_ANON_KEY: ''  // або в окремий файл config.js (рекомендовано)
 }, window.KOLUSKA_CONFIG || {});
 const CLOUD = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && window.supabase);
 const sb = CLOUD ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
@@ -455,7 +455,24 @@ const Local = {
 
 /* ---------- Режим 2: хмара (Supabase) ---------- */
 const photoCache = {};
-const chk = r => { if(r && r.error){ console.error(r.error); throw NET; } return r; };
+/* Справжня причина помилки сервера показується людині (і з кодом для звернення в підтримку) */
+function dbErr(e, status){
+  const msg = String((e && e.message) || '').toLowerCase(), code = (e && e.code) || status || '';
+  if(/failed to fetch|networkerror|network request failed|load failed/.test(msg)) return NET;
+  if(status === 401 || /jwt|token|not authenticated/.test(msg)) return 'Сеанс завершився. Зараз ви повернетеся на сторінку входу: увійдіть знову.';
+  if(status === 403 || code === '42501' || /row-level security|permission denied/.test(msg)) return `Немає доступу до збереження. Вийдіть з акаунта й увійдіть знову. Якщо не допоможе, напишіть на hello@koluska.app (код ${code || '403'}).`;
+  return `Не вдалося зберегти (код ${code || '?'}). Спробуйте ще раз. Якщо повторюється, напишіть на hello@koluska.app.`;
+}
+const chk = r => { if(r && r.error){ console.error('Supabase:', r.status, r.error); if(r.status === 401) setTimeout(sessionLost, 1500); throw dbErr(r.error, r.status); } return r; };
+/* Якщо сеанс застарів, один раз оновлюємо його й повторюємо запит */
+async function authRetry(run){
+  let r = await run();
+  if(r && r.error && (r.status === 401 || r.status === 403 || /jwt|row-level security/i.test(String(r.error.message || '')))){
+    const { error } = await sb.auth.refreshSession();
+    if(!error) r = await run();
+  }
+  return r;
+}
 function authErr(e){
   const m = (e && e.message || '').toLowerCase();
   if(m.includes('invalid login')) return 'Email або пароль не підходять.';
@@ -506,14 +523,14 @@ const Cloud = {
   },
   async saveChild(c){
     const row = { name:c.name, birth:c.birth, sex:c.sex||null, photo:c.photo||null };
-    const r = chk(c.id ? await sb.from('children').update(row).eq('id', c.id).select().single() : await sb.from('children').insert(row).select().single());
+    const r = chk(await authRetry(() => c.id ? sb.from('children').update(row).eq('id', c.id).select().single() : sb.from('children').insert(row).select().single()));
     return rowToChild(r.data);
   },
   async deleteChild(id){ chk(await sb.from('children').update({ deleted_at:new Date().toISOString() }).eq('id', id)); },
   async saveEntry(b, e){
     const { id, childId, date, photo, deleted_at, _b, ...payload } = e;
     const row = { block:b, child_id:childId, date, photo:photo||null, payload };
-    const r = chk(id ? await sb.from('entries').update(row).eq('id', id).select().single() : await sb.from('entries').insert(row).select().single());
+    const r = chk(await authRetry(() => id ? sb.from('entries').update(row).eq('id', id).select().single() : sb.from('entries').insert(row).select().single()));
     return rowToEntry(r.data);
   },
   async deleteEntry(b, id){ chk(await sb.from('entries').update({ deleted_at:new Date().toISOString() }).eq('id', id)); },
@@ -552,7 +569,7 @@ const Cloud = {
   async photoBlob(ref){ if(ref.startsWith('data:')) return dataUrlToBlob(ref); const { data, error } = await sb.storage.from('photos').download(ref); if(error) throw NET; return data; }
 };
 const API = CLOUD ? Cloud : Local;
-const errText = e => Array.isArray(e) ? e[1] : (typeof e==='string' ? e : NET);
+const errText = e => Array.isArray(e) ? e[1] : (typeof e==='string' ? e : (console.error(e), 'Щось пішло не так. Оновіть сторінку й спробуйте ще раз. Якщо повторюється, напишіть на hello@koluska.app.'));
 async function busy(btn, fn){
   const old = btn ? btn.innerHTML : ''; if(btn){ btn.disabled = true; btn.textContent = 'Зберігаємо…'; }
   try{ return await fn(); } finally { if(btn && btn.isConnected){ btn.disabled = false; btn.innerHTML = old; } }
@@ -1668,7 +1685,7 @@ document.addEventListener('click', e=>{
   else if('addChild' in d) openChild();
   else if(d.editChild) openChild(d.editChild);
   else if(d.pick){ setActive(d.pick); view='overview'; renderApp(); }
-  else if('logout' in d){ API.signOut().finally(()=>{ user = null; data = null; view = 'overview'; boot(); }); }
+  else if('logout' in d){ loggingOut = true; API.signOut().finally(()=>{ user = null; data = null; view = 'overview'; boot(); }); }
   else if('forgot' in d) openForgot();
   else if('export' in d) exportAll(t);
   else if(d.restore){ const [kind, id] = d.restore.split('|'); t.disabled = true;
@@ -1715,12 +1732,29 @@ function openNewPassword(){
   };
 }
 
-let recovering = false;
-if(CLOUD) sb.auth.onAuthStateChange(ev => {
-  if(ev==='PASSWORD_RECOVERY'){ recovering = true; if(user) openNewPassword(); }
-});
+let recovering = false, loggingOut = false;
+/* Якщо вхід «зник» (сеанс застарів, інша вкладка, телефон довго був у фоні), повертаємо людину на сторінку входу,
+   а не залишаємо екран, який виглядає робочим, але нічого не зберігає */
+function sessionLost(){
+  if(!user || loggingOut) return;
+  user = null; data = null;
+  authInfo = 'Сеанс завершився. Увійдіть знову: усе, що ви вже записали, на місці.';
+  closeModal(); renderAuth();
+  try{ if(CLOUD) sb.auth.signOut({ scope:'local' }); }catch(e){}
+}
+if(CLOUD){
+  sb.auth.onAuthStateChange(ev => {
+    if(ev==='PASSWORD_RECOVERY'){ recovering = true; if(user) openNewPassword(); }
+    if(ev==='SIGNED_OUT') setTimeout(sessionLost, 0);
+  });
+  document.addEventListener('visibilitychange', async () => {
+    if(document.visibilityState !== 'visible' || !user || loggingOut) return;
+    try{ const { data:{ session } } = await sb.auth.getSession(); if(!session) sessionLost(); }catch(e){}
+  });
+}
 
 async function boot(){
+  loggingOut = false;
   applyTheme();
   document.getElementById('root').innerHTML = `<div class="loading"><div>${mark(64)}Відкриваємо щоденник…</div></div>`;
   try{
